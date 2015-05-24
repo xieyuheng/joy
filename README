@@ -1,4 +1,13 @@
 backup of the joy programming language
 
+* note that
+  the code base is not clean in my view
+  I do not maintain this implementation
+  I just learn from the design of the language
+
+* if you care about the life of joy language
+  and you consider the code base hackable
+  do a fork and maintain it
+
 to build the interpreter of joy
 just type make

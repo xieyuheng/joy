@@ -19,6 +19,7 @@ all:
 # fi
 
 clean:
+	rm joy
 	rm -f *~ */*~
 	rm -f gc.succ gc.fail *.o
 	cd gc; $(MAKE) clean
