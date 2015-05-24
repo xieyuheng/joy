@@ -1,0 +1,270 @@
+JOY  -  compiled at 14:54:45 on Feb  1 2002 (BDW)
+Copyright 2001 by Manfred von Thun
+usrlib  is loaded
+inilib  is loaded
+agglib  is loaded
+
+testing the propositional logic library in file  plglib.joy
+
+agglib  is already loaded
+numlib  is loaded
+agglib  is already loaded
+seqlib  is loaded
+symlib  is loaded
+plglib  is loaded
+ 
+(* There are many notations. Begin using minimally bracketed infix:	*) 
+ 
+DEFINE   m-show == Min2Tre taut-show-all. 
+ 
+[ raining or not raining ]				m-show. 
+	tautology
+ 
+[ raining or not windy ]				m-show. 
+	not tautology, countermodel(s):
+  1 	T: [windy]   F: [raining] 
+ 
+[ [p and q] imp [p or q] ]				m-show. 
+	tautology
+ 
+[ [p or q] imp [p and q] ]				m-show. 
+	not tautology, countermodel(s):
+  1 	T: [p]   F: [q] 
+  2 	T: [q]   F: [p] 
+ 
+(* Really using minimal bracketing on the last two examples:		*) 
+ 
+[ p and q  imp  p or q ]				m-show. 
+	tautology
+ 
+[ p or q  imp  p and q ]				m-show. 
+	not tautology, countermodel(s):
+  1 	T: [p]   F: [q] 
+  2 	T: [q]   F: [p] 
+ 
+(* Longer examples show the benefit of minimal bracketing:		*) 
+ 
+[ p and q and r imp  p or r or q ]			m-show. 
+	tautology
+ 
+[ p and q and r iff  p or r or q ]			m-show. 
+	not tautology, countermodel(s):
+  1 	T: [p]   F: [q] 
+  2 	T: [p]   F: [r] 
+  3 	T: [r]   F: [p] 
+  4 	T: [r]   F: [q] 
+  5 	T: [q]   F: [p] 
+  6 	T: [q]   F: [r] 
+ 
+(* Using a more compact single symbol notation:				*) 
+ 
+[ p & q & r & s  >  p v r v q v s ]			m-show. 
+	tautology
+ 
+[ p & q & r & s  =  p v r v q v s ]			m-show. 
+	not tautology, countermodel(s):
+  1 	T: [p]   F: [q] 
+  2 	T: [p]   F: [r] 
+  3 	T: [p]   F: [s] 
+  4 	T: [r]   F: [p] 
+  5 	T: [r]   F: [q] 
+  6 	T: [r]   F: [s] 
+  7 	T: [q]   F: [p] 
+  8 	T: [q]   F: [r] 
+  9 	T: [q]   F: [s] 
+  10 	T: [s]   F: [p] 
+  11 	T: [s]   F: [q] 
+  12 	T: [s]   F: [r] 
+ 
+[ - p & - q   >  - [p v q] ]				m-show. 
+	tautology
+ 
+[ - p v - p   >   - [p v q] ]				m-show. 
+	not tautology, countermodel(s):
+  1 	T: [q]   F: [p] 
+  2 	T: [q]   F: [p] 
+ 
+[ p > q > r > p & q & r ]				m-show. 
+	tautology
+ 
+[ p > q > r > p & q & s ]				m-show. 
+	not tautology, countermodel(s):
+  1 	T: [r q p]   F: [s] 
+ 
+[ [[p > q]  >  p]   >   p  ]				m-show. 
+	tautology
+ 
+[ [[p > q]  >  q]   >   p  ]				m-show. 
+	not tautology, countermodel(s):
+  1 	T: [q]   F: [p] 
+ 
+[ [ p & q v p & r ]  =  p & [q v r] ]			m-show. 
+	tautology
+ 
+[ [ p & q v p & r ]  =  q & [p v r] ]			m-show. 
+	not tautology, countermodel(s):
+  1 	T: [r p]   F: [q] 
+  2 	T: [r q]   F: [p] 
+ 
+[ [p v q] & [p > r] & [q > s]   >   [r v s] ]		m-show. 
+	tautology
+ 
+[ [p v q] & [p > r] & [q > s]   >   [r & s] ]		m-show. 
+	not tautology, countermodel(s):
+  1 	T: [r p]   F: [s q] 
+  2 	T: [s q]   F: [r p] 
+ 
+(* The original Polish notation, used by Polish logicians in the 1920's	*) 
+(* N = not, K = and, A = or, C = imp, E = iff :				*) 
+ 
+DEFINE   p-show == Pol2Tre taut-show-all. 
+ 
+[  A  p  N p  ]						p-show. 
+	tautology
+ 
+[  A  p  N q  ]						p-show. 
+	not tautology, countermodel(s):
+  1 	T: [q]   F: [p] 
+ 
+[  C   C p q   C N q N p  ]				p-show. 
+	tautology
+ 
+[  C   C p q   C N p N q  ]				p-show. 
+	not tautology, countermodel(s):
+  1 	T: [q]   F: [p] 
+  2 	T: [q]   F: [p] 
+ 
+[  C  K  K  A p q  C p r  C q s   A r s  ]		p-show. 
+	tautology
+ 
+[  C  K  K  A p q  C p r  C q s   K r s  ]		p-show. 
+	not tautology, countermodel(s):
+  1 	T: [r p]   F: [s q] 
+  2 	T: [s q]   F: [r p] 
+ 
+(* But we can also use the other symbols for Polish notation:		*) 
+ 
+[ imp  and  imp p q  imp q r   imp p r ]		p-show. 
+	tautology
+ 
+[ imp  and  imp p q  imp p r   imp q r ]		p-show. 
+	not tautology, countermodel(s):
+  1 	T: [q]   F: [r p] 
+  2 	T: [q]   F: [r p] 
+ 
+[ >  v p & q r   & v p q v p r ]			p-show. 
+	tautology
+ 
+[ >  v p & q r   v & p q & p r ]			p-show. 
+	not tautology, countermodel(s):
+  1 	T: [p]   F: [r q] 
+  2 	T: [r q]   F: [p] 
+ 
+(* Using reverse Polish (postfix, Joy) notation:			*) 
+ 
+DEFINE   r-show == Rev2Tre taut-show-all. 
+ 
+[ p not q not and r imp   q p or  not   and  r  imp ]	r-show. 
+	tautology
+ 
+[ p not q not and r imp   q p and not   and  r  imp ]	r-show. 
+	not tautology, countermodel(s):
+  1 	T: [p]   F: [r q] 
+  2 	T: [q]   F: [r p] 
+ 
+(* The remaining tests only use minimally bracketed infix for input.	*) 
+(* There are four additional versions of the possible output:		*) 
+ 
+(* 1. Instead of showing all countermodels, show only one:		*) 
+ 
+DEFINE   m-show1 == Min2Tre taut-show-first. 
+ 
+[ p & q & r  >  p v q v r ]				m-show. 
+	tautology
+ 
+[ p v q v r  >  p & q & r ]				m-show. 
+	not tautology, countermodel(s):
+  1 	T: [p]   F: [q] 
+  2 	T: [p]   F: [r] 
+  3 	T: [q]   F: [p] 
+  4 	T: [q]   F: [r] 
+  5 	T: [r]   F: [p] 
+  6 	T: [r]   F: [q] 
+ 
+[ p v q v r  >  p & q & r ]				m-show1. 
+	not tautology, first countermodel:
+	T: [p]   F: [q] 
+ 
+(* 2. Do not show, but collect into  list (for further processing ?):	*) 
+ 
+DEFINE   m-collect  == Min2Tre taut-collect-all; 
+	 m-collect1 == Min2Tre taut-collect-first. 
+ 
+[ [p > q] & [q > s]   >   [p > s] ]			m-collect. 
+[]
+ 
+[ [p > q] & [q > s]   >   [s > p] ]			m-collect. 
+[[[s q] [p]] [[s] [p]] [[s] [q p]]]
+ 
+[ [p > q] & [q > s]   >   [s > p] ]			m-collect1. 
+[[[s] [q p]]]
+ 
+(* 3. Do not show or collect, just return number of countermodels:	*) 
+ 
+DEFINE   m-count == Min2Tre taut-count. 
+ 
+[ [p > q] & [r > s]   >  [[p & r] > [q v s]] ]		m-count. 
+0
+ 
+[ [p > q] & [r > s]   >  [[p v r] > [q & s]] ]		m-count. 
+2
+ 
+[ [p > q] & [r > s]   >  [[p v r] > [q & s]] ]		m-show. 
+	not tautology, countermodel(s):
+  1 	T: [r s]   F: [q p] 
+  2 	T: [p q]   F: [s r] 
+ 
+(* 4. Disregard countermodels, just determine whether tautology:	*) 
+ 
+DEFINE   m-test == Min2Tre taut-test. 
+ 
+[ [p & q & r]  >  [p = q = r] ]				m-test. 
+true
+ 
+[ [p = q = r]  >  [p & q & r] ]				m-test. 
+false
+ 
+[ [p = q = r]  >  [p v q v r] ]				m-test. 
+true
+ 
+[ [p v q v r]  >  [p = q = r] ]				m-test. 
+false
+ 
+(* Finally, for big formulas it can be useful to give a definition:	*) 
+(* Also, it can help to set them out over several lines:		*) 
+ 
+DEFINE big-formula == 
+  [  [ CEO-sells-shares 
+	imp    insider-trading  and  traders-conspire ]		and 
+     [ i-trade-exposed 
+	imp    CEO-resigns  or  CEO-is-sacked ]			and 
+     [ CEO-resigns 
+	imp    i-trade-exposed  and  shares-drop ]		and 
+     [ traders-conspire  and  CEO-is-sacked 
+	imp    sales-drop ]					and 
+     [ sales-drop 
+	imp    CEO-is-sacked  and  shares-drop ] 
+  imp 
+     [ CEO-sells-shares 
+	imp    shares-drop ]  ]. 
+ 
+big-formula  m-test. 
+false
+ 
+big-formula  m-show. 
+	not tautology, countermodel(s):
+  1 	T: [CEO-sells-shares traders-conspire insider-trading]   F: [shares-drop sales-drop CEO-is-sacked CEO-resigns i-trade-exposed] 
+ 
+(* So, it ain't half as bad as long as you let them get away with it...	*) 
+ 
+(* end  plgtst.joy *) 

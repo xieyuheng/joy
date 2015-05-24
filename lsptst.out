@@ -1,0 +1,267 @@
+JOY  -  compiled at 14:54:45 on Feb  1 2002 (BDW)
+Copyright 2001 by Manfred von Thun
+usrlib  is loaded
+inilib  is loaded
+agglib  is loaded
+
+Testing the Lisp interpreter lisp in the library lsplib.joy
+agglib  is already loaded
+numlib  is loaded
+agglib  is already loaded
+seqlib  is loaded
+lsplib  is loaded
+DEFINE l-prompt == "". 
+lisp. 
+
+Lisp interpreter
+		To include the Lisp library, type
+			[ include  "OK"  "lsplib.lsp" ]
+GO
+
+ 
+							(* CONSTANTS	*) 
+	123.456 
+123.456 
+	false 
+false 
+	"hello world" 
+"hello world" 
+	[ QUOTE [Peter Paul Mary] ] 
+[Peter Paul Mary] 
+	[ QUOTE [1 2 3 4 5] ] 
+[1 2 3 4 5] 
+ 
+						(* PRIMITIVE FUNCTIONS	*) 
+	[ CAR [QUOTE [Peter Paul Mary]] ] 
+Peter 
+	[ CDR [QUOTE [1 2 3 4 5]] ] 
+[2 3 4 5] 
+	[ CONS Fred [QUOTE [Peter Paul]] ] 
+[Fred Peter Paul] 
+	[ ATOM Fred ] 
+true 
+	[ ATOM [QUOTE [1 2 3]] ] 
+false 
+	[ NULL [QUOTE [1 2 3]] ] 
+false 
+	[ NULL [QUOTE []] ] 
+true 
+	[ EQ  2  3 ] 
+false 
+	[ LIST  [CDR [QUOTE [1 2 3]]]  [ATOM 123]  ] 
+[[2 3] true] 
+	[ [LAMBDA [lis] CAR [CDR lis]]  [QUOTE [11 22 33]] ] 
+22 
+ 
+						(* "BORROWED" from JOY	*) 
+	[ + [* 2 5] [- 10 7] ] 
+13 
+	[ and true false ] 
+false 
+	[ or true false ] 
+true 
+	[ >  3  4 ] 
+false 
+	[ and  [NULL [QUOTE []]]  [NULL [QUOTE [Bob]]] ] 
+false 
+	[ map    [QUOTE [10 11 12 13 14 15 16]]  [QUOTE [prime]] ] 
+[false true false true false false false] 
+	[ filter [QUOTE [10 11 12 13 14 15 16]]  [QUOTE [prime]] ] 
+[11 13] 
+ 
+	[ include "OK" "lsptst.lsp" ]		(* "BORROWED" include	*) 
+"OK" 
+(* FILE:  lsptst.lsp *) 
+ 
+(* Lisp tests, 
+   to be used with the Lisp interpreter in the library lsplib.joy *) 
+ 
+						(* DEFINITIONS		*) 
+	[ DEF  NIL  [QUOTE []] ] 
+NIL 
+	NIL 
+[] 
+	[ ATOM NIL ] 
+false 
+	[ NULL NIL ] 
+true 
+ 
+	[ DEF  PI  3.14 ] 
+PI 
+	[ * PI 100.1 ] 
+314.314 
+ 
+	[ DEF  NAMELIST 
+	  [QUOTE [Peter Paul Mary]] ] 
+NAMELIST 
+	[ CDR NAMELIST ] 
+[Paul Mary] 
+ 
+	[ DEF  PAIR 
+	  [ LAMBDA [x y] CONS x [CONS y NIL]] ] 
+PAIR 
+	[ PAIR 11 22] 
+[11 22] 
+ 
+	[ DEF  SECOND 
+	  [ LAMBDA [lis] [CAR [CDR lis]] ] ] 
+SECOND 
+	[ SECOND  [QUOTE [11 22 33 44]] ] 
+22 
+ 
+	[ DEF  PRIME 
+	  [ LAMBDA [n] prime n ] ] 
+PRIME 
+	[ PRIME 13 ] 
+true 
+	[ PRIME 14 ] 
+false 
+ 
+						(* LIBRARY COMBINATORS	*) 
+(* 
+	FOLDR 
+	FOLDL 
+*) 
+	[ FOLDR [QUOTE [a b c]] [QUOTE [d e]] 
+		[LAMBDA [x y] CONS x y] ] 
+[a b c d e] 
+	[ FOLDL [QUOTE [a b c]] [QUOTE [d e]] 
+		[LAMBDA [x y] CONS x y] ] 
+[c b a d e] 
+ 
+						(* DEFS USING FOLDR	*) 
+	[ DEFUN   CONCAT  [lis1 lis2] 
+	    FOLDR lis1 lis2 [LAMBDA [l r] CONS l r] ] 
+CONCAT 
+	[ CONCAT  [QUOTE [1 2]]  [QUOTE [3 4 5]] ] 
+[1 2 3 4 5] 
+ 
+	[ DEFUN   FLATTEN  [lis] 
+	    FOLDR lis NIL CONCAT ] 
+FLATTEN 
+	[ FLATTEN  [ QUOTE [[1 2] [] [3]] ] ] 
+[1 2 3] 
+ 
+	[ DEFUN   MEMBER  [el lis] 
+	    FOLDR lis false [LAMBDA [x y] IF [EQ el x] true y] ] 
+MEMBER 
+	[ MEMBER  Bob  [QUOTE [Peter Paul Mary]] ] 
+false 
+	[ MEMBER  Bob  [QUOTE [Peter Bob Mary]] ] 
+true 
+ 
+	[ DEFUN   SUM  [lis] 
+	    FOLDR lis 0 [LAMBDA [x y] [+ x y]] ] 
+SUM 
+	[ SUM  [QUOTE [1 2 3 4]] ] 
+10 
+ 
+	[ DEFUN  LIST-TO-FLOAT  [lis] 
+	    FOLDR lis 0.0 [LAMBDA [x y] + x [/ y 10.0]] ] 
+LIST-TO-FLOAT 
+	[ LIST-TO-FLOAT [QUOTE [3 1 4 1 5]] ] 
+3.1415 
+ 
+	[ DEFUN   MAP  [lis fun] 
+	    FOLDR lis NIL [LAMBDA [l r] CONS [fun l] r] ] 
+MAP 
+	[ MAP  [QUOTE [1 2 3 4]]  [LAMBDA [n] * n n] ] 
+[1 4 9 16] 
+	[ MAP  [QUOTE [[John Smith] [Mary Robinson]]]  [LAMBDA [l] CAR l] ] 
+[John Mary] 
+	[ MAP  [QUOTE [10 11 12 13 14 15 16]]  PRIME ] 
+[false true false true false false false] 
+ 
+	[ DEFUN   FILTER  [lis pred] 
+	    FOLDR lis NIL 
+		  [LAMBDA [l r] IF [pred l] [CONS l r] r] ] 
+FILTER 
+	[ FILTER  [QUOTE [1 3 1 4 2]]  [LAMBDA [n] < n 3] ] 
+[1 1 2] 
+	[ FILTER  [QUOTE [1 [2 3] 4 [] [5] 6]] [LAMBDA [x] ATOM x] ] 
+[1 4 6] 
+	[ FILTER  [QUOTE [10 11 12 13 14 15 16]]  PRIME ] 
+[11 13] 
+ 
+						(* DEFS USING FOLDL	*) 
+	[ DEFUN   SHUNT  [l1 l2] 
+	    FOLDL l1 l2 [LAMBDA [l r] CONS l r] ] 
+SHUNT 
+	[ SHUNT  [QUOTE [1 2 3]]  [QUOTE [4 5 6 7]] ] 
+[3 2 1 4 5 6 7] 
+ 
+	[ DEFUN   REVERSE  [lis]  SHUNT lis NIL ] 
+REVERSE 
+	[ REVERSE  [QUOTE [Smith Jones Robinson]] ] 
+[Robinson Jones Smith] 
+ 
+	[ DEFUN  LIST-TO-INT [lis] 
+	    FOLDL lis 0 [LAMBDA [x y] + x [* 10 y]] ] 
+LIST-TO-INT 
+	[ LIST-TO-INT [QUOTE [3 1 4 1 5]] ] 
+31415 
+ 
+						(* DEFS USING FOLDR2	*) 
+	[ DEFUN  ZIP  [l1 l2] 
+	    FOLDR2 l1 l2 NIL [LAMBDA [x y z] CONS [PAIR x y] z] ] 
+ZIP 
+	[ ZIP  NAMELIST  [QUOTE [Smith Jones Robinson]] ] 
+[[Peter Smith] [Paul Jones] [Mary Robinson]] 
+ 
+	[ DEFUN  WEAVE  [l1 l2] 
+	    FOLDR2 l1 l2 NIL [LAMBDA [x y z] CONS x [CONS y z]] ] 
+WEAVE 
+	[ WEAVE  NAMELIST  [QUOTE [Smith Jones Robinson]] ] 
+[Peter Smith Paul Jones Mary Robinson] 
+ 
+	[ DEFUN  SUM-OF-PRODUCTS [l1 l2] 
+	    FOLDR2 l1 l2 0 [LAMBDA [x y z] + [* x y] z] ] 
+SUM-OF-PRODUCTS 
+	[ SUM-OF-PRODUCTS [QUOTE [1 2 3]] [QUOTE [1 10 100]] ] 
+321 
+ 
+	[ DEFUN  MAP2  [l1 l2 f] 
+	    FOLDR2 l1 l2 NIL [LAMBDA [x y z] CONS [f x y] z]  ] 
+MAP2 
+	[ MAP2 [QUOTE [1 2 3]] [QUOTE [1 10 100]] 
+	       [LAMBDA [x y] * x y] ] 
+[1 20 300] 
+ 
+						(* DEFS USING RECFOLDR	*) 
+	[ DEFUN  RECFLATTEN [lis] 
+	    RECFOLDR lis NIL [LAMBDA [x l] CONS x l] ] 
+RECFLATTEN 
+	[ RECFLATTEN [QUOTE [1  []  [[2 3] [] 4 [5]]  [[[[6]]]] ]] ] 
+[1 2 3 4 5 6] 
+ 
+	[ DEFUN  RECSUM  [lis] 
+	    RECFOLDR lis 0 [LAMBDA [x y] + x y] ] 
+RECSUM 
+	[ RECSUM [QUOTE [1  []  [[2 3] [] 4 [5]]  [[[[6]]]] ]] ] 
+21 
+ 
+			(* simulating recursion by Self-Application	*) 
+ 
+	[ DEFUN   FACT0  [f n] 
+	    IF [NULL n] 1 [* n [f f [pred n]]] ] 
+FACT0 
+	[ DEFUN   FACT  [n] FACT0 FACT0 n ] 
+FACT 
+	[ FACT  5 ] 
+120 
+ 
+	[ DEFUN   LAST0  [f lis] 
+	    IF [NULL [CDR lis]]  [CAR lis]  [f f [CDR lis]] ] 
+LAST0 
+	[ DEFUN   LAST  [lis] LAST0 LAST0 lis ] 
+LAST 
+	[ LAST  [QUOTE [11 22 33 44 55]] ] 
+55 
+ 
+(* END:  lsptst.lsp *) 
+ÿ 
+						(* back to lsptst.joy	*) 
+	EXIT	(* from Lisp *) 
+exit from Lisp interpreter
+ 
+(* END:  lsptst.joy *) 

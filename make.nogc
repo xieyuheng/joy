@@ -1,0 +1,11 @@
+# makefile for Joy without BDW gc
+
+HDRS  =  globals.h
+SRCS  =  interp.c  scan.c  utils.c  main.c
+OBJS  =  interp.o  scan.o  utils.o  main.o
+CC    =  gcc -g -ansi -pedantic -Wall -D_C_SOURCE=1
+
+joy:		$(OBJS)
+		$(CC)  $(OBJS)  -lm  -o joy
+
+$(OBJS):	$(HDRS)

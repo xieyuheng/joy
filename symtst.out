@@ -1,0 +1,298 @@
+JOY  -  compiled at 14:54:45 on Feb  1 2002 (BDW)
+Copyright 2001 by Manfred von Thun
+usrlib  is loaded
+inilib  is loaded
+agglib  is loaded
+Testing the 12 translators in the library  symlib.joy
+agglib  is already loaded
+numlib  is loaded
+agglib  is already loaded
+seqlib  is loaded
+symlib  is loaded
+ 
+(* The translations will use the following unary and binary operators:	*) 
+ 
+DEFINE 
+  unops == [not succ pred fact fib first rest reverse i intern]; 
+  binops == [and or + - * / = < > cons concat map filter]. 
+ 
+(* Translations from Reverse Polish (= postfix, Joy, but no dup swap ..	*) 
+ 
+				(* to Cambridge (= Lisp without lambda	*) 
+ 
+[2  3  *  4  5  +  -]					Rev2Cam. 
+[- [* 2 3] [+ 4 5]]
+ 
+[4 6 pred * 5 succ 7 + - fact]				Rev2Cam. 
+[fact [- [* 4 [pred 6]] [+ [succ 5] 7]]]
+ 
+[true true not or false false and or]			Rev2Cam. 
+[or [or true [not true]] [and false false]]
+ 
+[2 3 * 2 3 + succ =]					Rev2Cam. 
+[= [* 2 3] [succ [+ 2 3]]]
+ 
+[1 [2 3] cons 4 [5 6] cons concat]			Rev2Cam. 
+[concat [cons 1 [QUOTE [2 3]]] [cons 4 [QUOTE [5 6]]]]
+ 
+[[1 2 3 4]  [fact]  map]				Rev2Cam. 
+[map [QUOTE [1 2 3 4]] [QUOTE [fact]]]
+ 
+[[6 7 8 9]  [prime] filter]				Rev2Cam. 
+[filter [QUOTE [6 7 8 9]] [QUOTE [prime]]]
+ 
+				(* to Tree, = Cam but bracketed atoms	*) 
+ 
+[2  3  *  4  5  +  -]					Rev2Tre. 
+[- [* [2] [3]] [+ [4] [5]]]
+ 
+[4 6 pred * 5 succ 7 + - fact]				Rev2Tre. 
+[fact [- [* [4] [pred [6]]] [+ [succ [5]] [7]]]]
+ 
+[true true not or false false and or]			Rev2Tre. 
+[or [or [true] [not [true]]] [and [false] [false]]]
+ 
+[2 3 * 2 3 + succ =]					Rev2Tre. 
+[= [* [2] [3]] [succ [+ [2] [3]]]]
+ 
+[1 [2 3] cons 4 [5 6] cons concat]			Rev2Tre. 
+[concat [cons [1] [QUOTE [2 3]]] [cons [4] [QUOTE [5 6]]]]
+ 
+[[1 2 3 4]  [fact]  map]				Rev2Tre. 
+[map [QUOTE [1 2 3 4]] [QUOTE [fact]]]
+ 
+[[6 7 8 9]  [prime] filter]				Rev2Tre. 
+[filter [QUOTE [6 7 8 9]] [QUOTE [prime]]]
+ 
+				(* to Infix, bracketed infix binaries	*) 
+ 
+[2  3  *  4  5  +  -]					Rev2Inf. 
+[[[2 * 3] - [4 + 5]]]
+ 
+[4 6 pred * 5 succ 7 + - fact]				Rev2Inf. 
+[fact [[4 * pred 6] - [succ 5 + 7]]]
+ 
+[true true not or false false and or]			Rev2Inf. 
+[[[true or not true] or [false and false]]]
+ 
+[2 3 * 2 3 + succ =]					Rev2Inf. 
+[[[2 * 3] = succ [2 + 3]]]
+ 
+[1 [2 3] cons 4 [5 6] cons concat]			Rev2Inf. 
+[[[1 cons QUOTE [2 3]] concat [4 cons QUOTE [5 6]]]]
+ 
+[[1 2 3 4]  [fact]  map]				Rev2Inf. 
+[[QUOTE [1 2 3 4] map QUOTE [fact]]]
+ 
+[[6 7 8 9]  [prime] filter]				Rev2Inf. 
+[[QUOTE [6 7 8 9] filter QUOTE [prime]]]
+ 
+				(* to Polish, prefix for all operators	*) 
+ 
+[2  3  *  4  5  +  -]					Rev2Pol. 
+[- * 2 3 + 4 5]
+ 
+[4 6 pred * 5 succ 7 + - fact]				Rev2Pol. 
+[fact - * 4 pred 6 + succ 5 7]
+ 
+[true true not or false false and or]			Rev2Pol. 
+[or or true not true and false false]
+ 
+[2 3 * 2 3 + succ =]					Rev2Pol. 
+[= * 2 3 succ + 2 3]
+ 
+[1 [2 3] cons 4 [5 6] cons concat]			Rev2Pol. 
+[concat cons 1 [2 3] cons 4 [5 6]]
+ 
+[[1 2 3 4]  [fact]  map]				Rev2Pol. 
+[map [1 2 3 4] [fact]]
+ 
+[[6 7 8 9]  [prime] filter]				Rev2Pol. 
+[filter [6 7 8 9] [prime]]
+ 
+ 
+(* Various Translations	*) 
+ 
+						(* Cambridge to Infix	*) 
+  
+[- [* 2 3] [+ 4 5]]					Cam2Inf. 
+[[[2 * 3] - [4 + 5]]]
+  
+[fact [- [* 4 [pred 6]] [+ [succ 5] 7]]]		Cam2Inf. 
+[fact [[4 * pred 6] - [succ 5 + 7]]]
+  
+[or [or true [not true]] [and false false]]		Cam2Inf. 
+[[[true or not true] or [false and false]]]
+  
+[= [* 2 3] [succ [+ 2 3]]]				Cam2Inf. 
+[[[2 * 3] = succ [2 + 3]]]
+  
+[concat [cons 1 [QUOTE [2 3]]] [cons 4 [QUOTE [5 6]]]]	Cam2Inf. 
+[[[1 cons QUOTE [2 3]] concat [4 cons QUOTE [5 6]]]]
+  
+[map [QUOTE [1 2 3 4]] [QUOTE [fact]]]			Cam2Inf. 
+[[QUOTE [1 2 3 4] map QUOTE [fact]]]
+  
+[filter [QUOTE [6 7 8 9]] [QUOTE [prime]]]		Cam2Inf. 
+[[QUOTE [6 7 8 9] filter QUOTE [prime]]]
+  
+						(* Infix to Polish	*) 
+ 
+[[[2 * 3] - [4 + 5]]]					Inf2Pol. 
+[- * 2 3 + 4 5]
+  
+[fact [[4 * pred 6] - [succ 5 + 7]]]			Inf2Pol. 
+[fact - * 4 pred 6 + succ 5 7]
+  
+[[[true or not true] or [false and false]]]		Inf2Pol. 
+[or or true not true and false false]
+  
+[[[2 * 3] = succ [2 + 3]]]				Inf2Pol. 
+[= * 2 3 succ + 2 3]
+  
+[[[1 cons QUOTE [2 3]] concat [4 cons QUOTE [5 6]]]]	Inf2Pol. 
+[concat cons 1 [2 3] cons 4 [5 6]]
+  
+[[QUOTE [1 2 3 4] map QUOTE [fact]]]			Inf2Pol. 
+[map [1 2 3 4] [fact]]
+  
+[[QUOTE [6 7 8 9] filter QUOTE [prime]]]		Inf2Pol. 
+[filter [6 7 8 9] [prime]]
+  
+					(* Polish to Reverse Polish	*) 
+  
+[- * 2 3 + 4 5]						Pol2Rev. 
+[2 3 * 4 5 + -]
+  
+[fact - * 4 pred 6 + succ 5 7]				Pol2Rev. 
+[4 6 pred * 5 succ 7 + - fact]
+  
+[or or true not true and false false]			Pol2Rev. 
+[true true not or false false and or]
+  
+[= * 2 3 succ + 2 3]					Pol2Rev. 
+[2 3 * 2 3 + succ =]
+  
+[concat cons 1 [2 3] cons 4 [5 6]]			Pol2Rev. 
+[1 [2 3] cons 4 [5 6] cons concat]
+  
+[map [1 2 3 4] [fact]]					Pol2Rev. 
+[[1 2 3 4] [fact] map]
+  
+[filter [6 7 8 9] [prime]]				Pol2Rev. 
+[[6 7 8 9] [prime] filter]
+  
+(* Translation to Reverse Polish, followed by evaluation in Joy		*) 
+ 
+						(* Cambridge evaluation	*) 
+  
+[- [* 2 3] [+ 4 5]]					Cam2Rev i. 
+-3
+  
+[fact [- [* 4 [pred 6]] [+ [succ 5] 7]]]		Cam2Rev i. 
+5040
+  
+[or [or true [not true]] [and false false]]		Cam2Rev i. 
+true
+  
+[= [* 2 3] [succ [+ 2 3]]]				Cam2Rev i. 
+true
+  
+[concat [cons 1 [QUOTE [2 3]]] [cons 4 [QUOTE [5 6]]]]	Cam2Rev i. 
+[1 2 3 4 5 6]
+  
+[map [QUOTE [1 2 3 4]] [QUOTE [fact]]]			Cam2Rev i. 
+[1 2 6 24]
+  
+[filter [QUOTE [6 7 8 9]] [QUOTE [prime]]]		Cam2Rev i. 
+[7]
+  
+						(* Infix evaluation	*) 
+ 
+[[[2 * 3] - [4 + 5]]]					Inf2Rev i. 
+-3
+  
+[fact [[4 * pred 6] - [succ 5 + 7]]]			Inf2Rev i. 
+5040
+  
+[[[true or not true] or [false and false]]]		Inf2Rev i. 
+true
+  
+[[[2 * 3] = succ [2 + 3]]]				Inf2Rev i. 
+true
+  
+[[[1 cons QUOTE [2 3]] concat [4 cons QUOTE [5 6]]]]	Inf2Rev i. 
+[1 2 3 4 5 6]
+  
+[[QUOTE [1 2 3 4] map QUOTE [fact]]]			Inf2Rev i. 
+[1 2 6 24]
+  
+[[QUOTE [6 7 8 9] filter QUOTE [prime]]]		Inf2Rev i. 
+[7]
+  
+						(* Polish evaluation	*) 
+  
+[- * 2 3 + 4 5]						Pol2Rev i. 
+-3
+  
+[fact - * 4 pred 6 + succ 5 7]				Pol2Rev i. 
+5040
+  
+[or or true not true and false false]			Pol2Rev i. 
+true
+  
+[= * 2 3 succ + 2 3]					Pol2Rev i. 
+true
+  
+[concat cons 1 [2 3] cons 4 [5 6]]			Pol2Rev i. 
+[1 2 3 4 5 6]
+  
+[map [1 2 3 4] [fact]]					Pol2Rev i. 
+[1 2 6 24]
+  
+[filter [6 7 8 9] [prime]]				Pol2Rev i. 
+[7]
+  
+(* the following are only for Min (minimally bracketed infix notation	*) 
+ 
+DEFINE 
+  bin1ops == [ = < > ]; 
+  bin2ops == [ + - or concat ]; 
+  bin3ops == [ * / and cons ]. 
+ 
+[ 1 * 2 + 3 * 4 + 5 * 6  <  100 ]			Min2Inf. 
+[[[[1 * 2] + [[3 * 4] + [5 * 6]]] < 100]]
+ 
+[ 1 * 2 + 3 * 4 + 5 * 6  <  100 ]			Min2Pol. 
+[< + * 1 2 + * 3 4 * 5 6 100]
+ 
+[ 1 * 2 + 3 * 4 + 5 * 6  <  100 ]			Min2Cam. 
+[< [+ [* 1 2] [+ [* 3 4] [* 5 6]]] 100]
+ 
+[ 1 * 2 + 3 * 4 + 5 * 6  <  100 ]			Min2Tre. 
+[< [+ [* [1] [2]] [+ [* [3] [4]] [* [5] [6]]]] [100]]
+ 
+[ 1 * 2 + 3 * 4 + 5 * 6  <  100 ]			Min2Rev. 
+[1 2 * 3 4 * 5 6 * + + 100 <]
+ 
+[ 1 * 2 + 3 * 4 + 5 * 6  <  100 ]			Min2Rev i. 
+true
+ 
+(* for some final light relief:						*) 
+ 
+[cons [intern [reverse [cons 't "iuq"]]] [QUOTE []]]	Cam2Tre. 
+[cons [intern [reverse [cons ['t] ["iuq"]]]] [QUOTE []]]
+ 
+[cons [intern [reverse [cons 't "iuq"]]] [QUOTE []]]	Cam2Inf. 
+[[intern reverse ['t cons "iuq"] cons QUOTE []]]
+ 
+[cons [intern [reverse [cons 't "iuq"]]] [QUOTE []]]	Cam2Pol. 
+[cons intern reverse cons 't "iuq" []]
+ 
+[cons [intern [reverse [cons 't "iuq"]]] [QUOTE []]]	Cam2Rev. 
+['t "iuq" cons reverse intern [] cons]
+ 
+[cons [intern [reverse [cons 't "iuq"]]] [QUOTE []]]	Cam2Rev i. 
+[quit]
+ 
+[cons [intern [reverse [cons 't "iuq"]]] [QUOTE []]]	Cam2Rev i i. 

@@ -1,0 +1,208 @@
+JOY  -  compiled at 15:19:20 on Apr  3 2002 (BDW)
+Copyright 2001 by Manfred von Thun
+usrlib  is loaded
+inilib  is loaded
+agglib  is loaded
+numlib  is loaded
+agglib  is already loaded
+seqlib  is loaded
+mtrlib  is loaded
+numlib  is already loaded
+output from test file  mtrtst.joy  (* MATRICES and VECTORS *)
+user input is indented by one tab
+	                                   (* VECTORS              *) 
+	 
+	5  "hello"  n-e-vector. 
+["hello" "hello" "hello" "hello" "hello"]
+	5  1  n-e-vector. 
+[1 1 1 1 1]
+	                                   (* vectors and scalars  *) 
+	 
+	5   [1 2 3]   [+]sv-bin-v. 
+[6 7 8]
+	3.13   [10 20 30]   [*]sv-bin-v. 
+[31.3 62.6 93.9]
+	5   [1 2 3 4 5 6 7 8 9 10]    [-]sv-bin-v. 
+[4 3 2 1 0 -1 -2 -3 -4 -5]
+	[1 2 3 4 5 6 7 8 9 10]   5    [-]vs-bin-v. 
+[-4 -3 -2 -1 0 1 2 3 4 5]
+	[{1 2 3}{4 5 6}{7 8 9}]    {2 4 6 8}    [and]vs-bin-v. 
+[{2} {4 6} {8}]
+	3.14   [[id] [dup *] [dup dup * *]]    [i]sv-bin-v. 
+[3.14 9.8596 30.9591]
+	[1 2 3 4]   [dup] [*] concat   [i]vs-bin-v. 
+[1 4 9 16]
+	[1.1 2.2 3.3 4.4 5.5]   v-negate-v. 
+[-1.1 -2.2 -3.3 -4.4 -5.5]
+	[1.1 2.2 3.3 4.4 5.5]   v-invert-v. 
+[0.909091 0.454545 0.30303 0.227273 0.181818]
+	    
+	                                   (* two vectors          *) 
+	 
+	[1 2 3 4]   [11 22 33]      vv-samesize. 
+false
+	[1 2 3 4]   [11 22 33 44]   vv-samesize. 
+true
+	 
+	[1 2 3]   [10 20 30]   [+]vv-bin-v. 
+[11 22 33]
+	[1 2 3]   [10 20 30]    [*]vv-bin-v. 
+[10 40 90]
+	[{1 2 3}{2 3 4}]   [{1 3 4}{4 5 6}]   [or]vv-bin-v. 
+[{1 2 3 4} {2 3 4 5 6}]
+	[{1 2 3}{2 3 4}]   [{1 3 4}{4 5 6}]   [and]vv-bin-v. 
+[{1 3} {4}]
+	[true false false true]  [true true false false]  [and]vv-bin-v. 
+[true false false false]
+	 
+	(* inner or scalar product *) 
+	[1 2 3]  [1 2 3]   [*][+]vv-2bin-s. 
+14
+	[1.1 2.2 3.3]  [3.3 4.4 5.5]   [*][+]vv-2bin-s. 
+31.46
+	[{1 2 3}{4 5 6}]   [{2 3}{2 6}]   [and][or]vv-2bin-s. 
+{2 3 6}
+	[{1 2 3}{4 5 6}]   [{2 3}{2 6}]   [or][and]vv-2bin-s. 
+{2}
+	[{1 2 3}{4 5 6}]   [{2 3}{2 6}]   [and][and]vv-2bin-s. 
+{}
+	[{1 2 3}{4 5 6}]   [{2 3}{2 6}]   [or][or]vv-2bin-s. 
+{1 2 3 4 5 6}
+	[true false true]  [false true true]  [and][or]vv-2bin-s. 
+true
+	 
+	                                   (* vectors to matrices *) 
+	[1 2 3 4]  v-1row-m. 
+[[1 2 3 4]]
+	[1 2 3 4]  v-1col-m. 
+[[1] [2] [3] [4]]
+	[1 2 3 4]  v-zdiag-m. 
+[[1 0 0 0] [0 2 0 0] [0 0 3 0] [0 0 0 4]]
+	[1 2 3 4]  0  v-e-diag-m. 
+[[1 0 0 0] [0 2 0 0] [0 0 3 0] [0 0 0 4]]
+	["Peter" "Paul" "Mary"]   ""  v-e-diag-m. 
+[["Peter" "" ""] ["" "Paul" ""] ["" "" "Mary"]]
+	[{1 2} {3 4 5} {6}]  {} v-e-diag-m. 
+[[{1 2} {} {}] [{} {3 4 5} {}] [{} {} {6}]]
+	4  1  n-e-vector  v-zdiag-m. 
+[[1 0 0 0] [0 1 0 0] [0 0 1 0] [0 0 0 1]]
+	4  1  n-e-vector  0  v-e-diag-m. 
+[[1 0 0 0] [0 1 0 0] [0 0 1 0] [0 0 0 1]]
+	4 'i  n-e-vector 'o  v-e-diag-m. 
+[['i 'o 'o 'o] ['o 'i 'o 'o] ['o 'o 'i 'o] ['o 'o 'o 'i]]
+	 
+	[1 2 3]   [10 20]   [+]vv-bin-m. 
+[[11 21] [12 22] [13 23]]
+	[1.1 2.2]   [3.3 4.4 5.5 6.6]    [+]vv-bin-m. 
+[[4.4 5.5 6.6 7.7] [5.5 6.6 7.7 8.8]]
+	[1.1 2.2]   [4.4 5.5 6.6 7.7]    [*]vv-bin-m. 
+[[4.84 6.05 7.26 8.47] [9.68 12.1 14.52 16.94]]
+	[{1 2 3}{4 5}]   [{1}{2 3}{3 4}]   [or]vv-bin-m. 
+[[{1 2 3} {1 2 3} {1 2 3 4}] [{1 4 5} {2 3 4 5} {3 4 5}]]
+	[{1 2 3}{4 5}]   [{1}{2 3}{3 4}]   [and]vv-bin-m. 
+[[{1} {2 3} {3}] [{} {} {4}]]
+	[1 2 3 4]  [[id] [dup *] [dup dup * *]]   [dupd i]vv-bin-m. 
+[[1 1 1] [2 4 8] [3 9 27] [4 16 64]]
+	 
+	(* sindeg   cosdeg   tandeg  are defined in numlib.joy *) 
+	[0.0 30.0 45.0]  [ [sindeg] [cosdeg] [tandeg] ]  [dupd i]vv-bin-m. 
+[[0 1 0] [0.5 0.866025 0.57735] [0.707107 0.707107 1]]
+	 
+	[peter paul]   [[smith] [jones]]   [cons]vv-bin-m. 
+[[[peter smith] [peter jones]] [[paul smith] [paul jones]]]
+	[peter paul]   [[smith] [jones]]   [cons]vv-bin-m  size. 
+2
+	(* compare: *) 
+	[peter paul]   [ smith   jones ]   cartproduct. 
+[[paul jones] [paul smith] [peter jones] [peter smith]]
+	[peter paul]   [ smith   jones ]   cartproduct  size. 
+4
+	 
+	                                   (* MATRICES             *) 
+	 
+	[[1 2] [3 4]]   [[5 6] [7 8]]   mm-vercat-m. 
+[[1 2] [3 4] [5 6] [7 8]]
+	[[1 2] [3 4]]   [[5 6] [7 8]]   mm-horcat-m. 
+[[1 2 5 6] [3 4 7 8]]
+	[[1 2 3] [4 5 6] [7 8 9] [10 11 12]]   m-transpose-m. 
+[[1 4 7 10] [2 5 8 11] [3 6 9 12]]
+	 
+	                                   (* matrices and scalars *) 
+	 
+	[[1 2] [3 4] [5 6]]  10      [+]ms-cbin-m. 
+[[11 12] [13 14] [15 16]]
+	[[1 2] [3 4] [5 6]]  10      [-]ms-bin-m. (* not commutative *) 
+[[-9 -8] [-7 -6] [-5 -4]]
+	[[1 2] [3 4] [5 6]]  10      [*]ms-cbin-m. 
+[[10 20] [30 40] [50 60]]
+	[[1 2] [3 4] [5 6]]   0      [*]ms-cbin-m. 
+[[0 0] [0 0] [0 0]]
+	[[1 2] [3 4] [5 6]]   7   [popd]ms-bin-m. 
+[[7 7] [7 7] [7 7]]
+	[[1 2] [3 4] [5 6]]  [succ]  [i]ms-bin-m. 
+[[2 3] [4 5] [6 7]]
+	[[{1 2} {3 4}] [{5 6} {7 8}] ]   {1 3 5 7}  [and]ms-bin-m. 
+[[{1} {3}] [{5} {7}]]
+	 
+	5  [[1 2 3] [4 5 6] [7 8 9]]        [-]sm-bin-m. 
+[[4 3 2] [1 0 -1] [-2 -3 -4]]
+	   [[1 2 3] [4 5 6] [7 8 9]]   5    [-]ms-bin-m. 
+[[-4 -3 -2] [-1 0 1] [2 3 4]]
+	0  [[1 2 3] [4 5 6] [7 8 9]]      [pop]sm-bin-m. 
+[[0 0 0] [0 0 0] [0 0 0]]
+	 
+	                                   (* two matrices         *) 
+	 
+	[[1 2 3] [4 5 6]]  [[10 20 30]  [40 50 60]]      mm-add-m. 
+[[11 22 33] [44 55 66]]
+	[[1 2 3] [4 5 6]]  [[10 20 30]  [40 50 60]]   [+]mm-bin-m. 
+[[11 22 33] [44 55 66]]
+	[[1 2 3] [4 5 6]]  [[10 20 30]  [40 50 60]]   [*]mm-bin-m. 
+[[10 40 90] [160 250 360]]
+	[[true  true ] [false false]] 
+	[[true  false] [true  false]]                [or]mm-bin-m. 
+[[true true] [true false]]
+	[[true  true ] [false false]] 
+	[[true  false] [true  false]]               [and]mm-bin-m. 
+[[true false] [false false]]
+	[[true  true ] [false false]] 
+	[[true  false] [true  false]]               [xor]mm-bin-m. 
+[[false true] [true false]]
+	 
+	DEFINE     (* 2 by 2 identity matrix *) 
+	  id2  ==  2 1 n-e-vector  0 v-e-diag-m. 
+	 
+	id2. 
+[[1 0] [0 1]]
+	id2  m-transpose-m. 
+[[1 0] [0 1]]
+	id2  [[1 2 3] [4 5 6]]              mm-mul-m. 
+[[1 2 3] [4 5 6]]
+	[[1 2] [3 4] [5 6]]  id2            mm-mul-m. 
+[[1 2] [3 4] [5 6]]
+	[[1 2] [3 4] [5 6]]  id2     [*][+]mm-2bin-m. 
+[[1 2] [3 4] [5 6]]
+	 
+	[[1.1 2.2] [3.3 4.4] [5.5 6.6]]          dup  m-print 
+	[[1.1 2.2] [3.3 4.4]]                    dup  m-print 
+	                                    mm-mul-m  m-print. 
+[ [1.1 2.2] 
+  [3.3 4.4] 
+  [5.5 6.6] ]
+[ [1.1 2.2] 
+  [3.3 4.4] ]
+[ [8.47 12.1] 
+  [18.15 26.62] 
+  [27.83 41.14] ]
+	 
+	[[{1 2} {3 4}] [{4 5} {6 7}]]            dup  m-print 
+	[[{1 3 5} {6}] [{2} {3 4 5}]]            dup  m-print 
+	                          [and][or]mm-2bin-m  m-print. 
+[ [{1 2} {3 4}] 
+  [{4 5} {6 7}] ]
+[ [{1 3 5} {6}] 
+  [{2} {3 4 5}] ]
+[ [{1} {3 4}] 
+  [{5} {}] ]
+	 
+	(* END of test file  mtrtst.joy *) 

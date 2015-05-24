@@ -1,0 +1,15 @@
+# makefile for Joy 
+
+HDRS  =  globals.h
+SRCS  =  interp.c  scan.c  utils.c  main.c
+OBJS  =  interp.o  scan.o  utils.o  main.o
+CC    =  gcc -g -ansi -pedantic -Wall -D_C_SOURCE=1 -DGC_BDW
+
+joy:		$(OBJS)  gc/gc.a
+#		$(CC)  $(OBJS)  gc/gc.a  -lm  -o joy
+		$(CC)  -static  $(OBJS)  -L gc/.libs -lgc  -lm  -o joy
+
+$(OBJS):	$(HDRS)
+
+gc/gc.a:
+		cd gc; $(MAKE)

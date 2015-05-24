@@ -1,0 +1,128 @@
+JOY  -  compiled at 11:59:37 on Jul  2 2001 (NOBDW)
+Copyright 2001 by Manfred von Thun
+usrlib  is loaded
+inilib  is loaded
+agglib  is loaded
+Thursday 19-JUL-01 19:31:55
+(* testing the tracing versions of joy0:    joy0s  and  joy0l  *) 
+ 
+      2 3 +                             "\nfinal answer = " putchars. 
+
+final answer = 5
+ 
+    [ 2 3 + ]  joy0s                    "\nfinal answer = " putchars. 
+
+joy0s :
+
+final answer = 5
+ 
+  [ [ 2 3 + ]  joy0s ]  joy0s           "\nfinal answer = " putchars. 
+
+joy0s :
+
+joy0s :
+
+joy0s :
+
+
+joy0s :
+joy0s :
+joy0s :
+
+
+final answer = 5
+ 
+[ [ [ 2 3 + ]  joy0s ]  joy0s ]  joy0s  "\nfinal answer = " putchars. 
+
+joy0s :
+
+joy0s :
+
+joy0s :
+
+
+joy0s :
+joy0s :
+joy0s :
+
+
+joy0s :
+
+joy0s :
+
+
+joy0s :
+joy0s :
+joy0s :
+
+
+final answer = 5
+ 
+    [ 2 3 + ]  joy0l                    "\nfinal answer = " putchars. 
+
+joy0l :
+2 3 + 
+final answer = 5
+ 
+  [ [ 2 3 + ]  joy0l ]  joy0l           "\nfinal answer = " putchars. 
+
+joy0l :
+[2 3 +] joy0l 
+joy0l :
+newline 
+joy0l :
+'
+ putch 
+"joy0l :" putchars 
+joy0l :
+[putch] step joy0l :newline 
+joy0l :
+'
+ putch 
+[dup put [[joy0l body joy0l] [[]] [pop pop pop] [cons pop cons] [opcase pop opcase] [body pop body] [i pop joy0l] [step pop [joy0] cons step] [[] cons i]] opcase i] step 2 3 + 
+final answer = 5
+ 
+[ [ [ 2 3 + ]  joy0l ]  joy0l ]  joy0l  "\nfinal answer = " putchars. 
+
+joy0l :
+[[2 3 +] joy0l] joy0l 
+joy0l :
+newline 
+joy0l :
+'
+ putch 
+"joy0l :" putchars 
+joy0l :
+[putch] step joy0l :newline 
+joy0l :
+'
+ putch 
+[dup put [[joy0l body joy0l] [[]] [pop pop pop] [cons pop cons] [opcase pop opcase] [body pop body] [i pop joy0l] [step pop [joy0] cons step] [[] cons i]] opcase i] step [2 3 +] joy0l 
+joy0l :
+newline 
+joy0l :
+'
+ putch 
+"joy0l :" putchars 
+joy0l :
+[putch] step joy0l :newline 
+joy0l :
+'
+ putch 
+[dup put [[joy0l body joy0l] [[]] [pop pop pop] [cons pop cons] [opcase pop opcase] [body pop body] [i pop joy0l] [step pop [joy0] cons step] [[] cons i]] opcase i] step 2 3 + gc - 305 nodes inspected, 162 nodes copied, clock: 1
+
+final answer = 5
+ 
+(* and as a final absurdity, with no tracing at all: *) 
+ 
+[[[[[ 2 3 +] joy0] joy0] joy0] joy0] joy0 "\nfinal answer = "putchars. 
+gc - 2359 nodes inspected, 1249 nodes copied, clock: 1
+gc - 3729 nodes inspected, 1976 nodes copied, clock: 1
+gc - 2941 nodes inspected, 1558 nodes copied, clock: 1
+gc - 4636 nodes inspected, 2456 nodes copied, clock: 1
+gc - 3100 nodes inspected, 1643 nodes copied, clock: 1
+
+final answer = 5
+ 
+(* END  jp-joytst.joy *) 
+time:  8 CPU,  6 gc (= 75%)

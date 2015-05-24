@@ -1,0 +1,190 @@
+JOY  -  compiled at 11:59:37 on Jul  2 2001 (NOBDW)
+Copyright 2001 by Manfred von Thun
+usrlib  is loaded
+inilib  is loaded
+agglib  is loaded
+Monday 03-SEP-01 15:46:40
+ 
+(* input that might have come from a terminal *) 
+ 
+joytut. 
+
+Interactive tutorial on JOY
+
+Contents:
+  1 - Numbers and Lists
+  2 - The map and filter combinators
+  3 - The ifte and linrec combinators
+
+1 - Numbers and Lists
+
+One of the data types in Joy is the type of integers.
+Literal integers are written in ordinary decimal notation.
+The usual binary operators are:  +  -  *  /
+But these operators are written after their arguments.
+What will the program   2  3  +   leave on the stack ?
+ÿ	hahaha 
+An integer is expected:
+	1234 
+No, the right answer is:  5 
+What will the program   7  6  *   leave on the stack ?
+	42 
+Excellent.
+What will the program   7  6  *  2  3  +  -   leave on the stack ?
+	36 
+No, the right answer is:  37 
+The most important aggregate datatype is that of lists.
+These are written inside square brackets, like this:
+        [42 17 3 9 35]
+Some important operators for lists are:
+    first      rest      cons      concat
+What will the program   [5 4 2 7]  first   leave on the stack ?
+	5 
+Terrific.
+What will the program   [5 4 2 7]  rest   leave on the stack ?
+	7 
+A list is expected:
+	[2 4 7] 
+No, the right answer is:  [4 2 7] 
+What will the program   8  [9 3]  cons   leave on the stack ?
+	[  8  9   3    ] 
+Great.
+What will the program   [5 3]  dup  concat   leave on the stack ?
+	[ [5 3] 5 3] 
+No, the right answer is:  [5 3 5 3] 
+What will the program   [5 3]  dup  cons   leave on the stack ?
+	[ [5 3] 5 3] 
+Good.
+What will the dots   ...   have to be, so that
+	...  [3 2 4]  concat
+leaves    [7 3 3 2 4]    on the stack ?
+	[73] 
+No, the right answer is:  [7 3] 
+You answered 4 of the 9 questions correctly.
+
+2 - The map and filter combinators
+
+Combinators are similar to operators, they expect something
+on the stack. But combinators always expect a quoted program
+and perhaps something else. For example, the   map   combinator
+expects a single program and below that an aggregate, e.g. a list.
+What will the program   [3 2 4] [dup +] map   leave on the stack ?
+	[ 9 4  16] 
+No, the right answer is:  [6 4 8] 
+What will the dots   ...   have to be, so that
+	[3 2 4]  ...  map
+leaves    [13 12 14]    on the stack ?
+	[ 10 + ] 
+Terrific.
+Another example is the   filter   combinator, which expects
+a program that computes a truth value, and below that an aggregate.
+What will the program   
+	[5 16 3 7 14]  [10 <]  filter   leave on the stack ?
+	[5 3 7] 
+Terrific.
+For the next question, provide the shortest answer
+What will the dots   ...   have to be, so that
+	[5 10 9 11 2]  [10 +]  map   ...  filter
+leaves    [15 19 12]    on the stack ?
+	[ 20 <] 
+Splendid.
+You answered 3 of the 4 questions correctly.
+
+3 - The ifte and linrec combinators
+
+Two more complicated combinators are the  ifte  and the  linrec
+combinators.  The  ifte  combinator expects three quotation parameters
+on the stack. In most cases they have been pushed just beforehand.
+What will the program   5  [7 <]  [10 +]  [10 -]  ifte   leave on the stack ?
+	15 
+Good.
+What will the program   8  [7 <]  [10 +]  [10 -]  ifte   leave on the stack ?
+	-8 
+No, the right answer is:  -2 
+A programmer wants to write a recursive definition of the
+factorial function, which has the form:
+    factorial ==
+      ...                           (* first  quote *)
+      ...                           (* second quote *)
+      ...                           (* third  quote *)
+      ifte
+What could be used as the first quote?
+	[ 0 =] 
+Great.
+What could be used as the second quote?
+	[ succ ] 
+Splendid.
+This question is harder:
+What could be used as the third quote?
+	[ factorial *] 
+No, the right answer must be one of the following:
+	[dup pred factorial *]   [dup 1 - factorial *]   
+Later the programmer realises that the factorial function
+is only needed in one place of the program, so it would be good
+not to have the definition at all, by using the  linrec  combinator:
+      [ null ] 			(* first  quote *)
+      [ succ ]                       (* second quote *)
+      ...                            (* third  quote *)
+      ...                            (* fourth quote *)
+      linrec
+What could be used as the third quote ?
+	[  dup  pred  ] 
+Terrific.
+What could be used as the fourth quote ?
+	[ * ] 
+Excellent.
+You answered 5 of the 7 questions correctly.
+
+
+To repeat something, here are the sections again
+  1 - Numbers and Lists
+  2 - The map and filter combinators
+  3 - The ifte and linrec combinators
+Type the number of the section you want, or 
+type  0  to do all sections, or
+type any other number (even negative) to quit.
+	2 
+2 - The map and filter combinators
+
+Combinators are similar to operators, they expect something
+on the stacgc - 49 nodes inspected, 24 nodes copied, clock: 1
+k. But combinators always expect a quoted program
+and perhaps something else. For example, the   map   combinator
+expects a single program and below that an aggregate, e.g. a list.
+What will the program   [3 2 4] [dup +] map   leave on the stack ?
+	[6 4 8] 
+Good.
+What will the dots   ...   have to be, so that
+	[3 2 4]  ...  map
+leaves    [13 12 14]    on the stack ?
+	[ 10 +  ] 
+Splendid.
+Another example is the   filter   combinator, which expects
+a program that computes a truth value, and below that an aggregate.
+What will the program   
+	[5 16 3 7 14]  [10 <]  filter   leave on the stack ?
+	[5 3 7] 
+Excellent.
+For the next question, provide the shortest answer
+What will the dots   ...   have to be, so that
+	[5 10 9 11 2]  [10 +]  map   ...  filter
+leaves    [15 19 12]    on the stack ?
+	[ 20 <] 
+Excellent.
+You answered 4 of the 4 questions correctly.
+
+
+To repeat something, here are the sections again
+  1 - Numbers and Lists
+  2 - The map and filter combinators
+  3 - The ifte and linrec combinators
+Type the number of the section you want, or 
+type  0  to do all sections, or
+type any other number (even negative) to quit.
+999 
+Leaving  Interactive tutorial on JOY
+
+
+Bye
+
+time:  7 CPU,  1 gc (= 14%)
