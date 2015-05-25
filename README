@@ -43,8 +43,8 @@ just type make
       symtst.out -- output
   * the special libraries
     * mtrlib.joy -- matrices and vectors
-      mtrtst.joy test file
-      mtrtst.out output
+      mtrtst.joy -- test file
+      mtrtst.out -- output
     * tutlib.joy -- interactive tutorials
       joytut.joy -- an application
       joytut.com -- a (pseudo) input
