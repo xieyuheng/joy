@@ -1,0 +1,34 @@
+<HTML>
+<HEAD>
+<BF>Prospectus for John Cowan's Joy1  </BF>
+<TITLE>Prospectus for John Cowan's Joy1</TITLE>
+</HEAD>
+<P>
+John Cowan's Joy1 is essentially the old prototype of Joy
+with the following additions:
+<UL>
+<LI>Floats (real numbers) as a new datatype, together with
+    numerous new functions over floats.
+<LI>Files as a datatype, together with some common functions
+    for manipulating files and doing I/O.
+<LI>Some new string functions. Also, on most platforms, an option
+    to include garbage collection for strings.
+<LI>Some bugs in the old prototype have been fixed. Portability
+    has been further increased.  Joy1 will still compile and run
+    with any strictly conforming ISO C compiler.
+</UL>
+<P>
+The currently supported platforms for the general garbage collector
+include Unix/Linux/*BSD on i386/Alpha/SPARC/SGI/HP, OS/2,
+Win32 native/Cygwin/DJGPP, and perhaps Macintosh.  One system
+known *not* to work is OpenVMS (here the 4 C-files have
+to be compiled and linked in the usual manner).
+Joy1 has not yet been built on all these systems.
+<P>
+It is intended that the new implementation become known as Joy1,
+and that the earlier prototype, now Joy0, should gradually fade away. 
+However, for compatiblity reasons the prototype Joy0
+C sources have been updated (16-JUN-01).
+<P>
+I am enormously grateful to John for his work.
+</HTML>

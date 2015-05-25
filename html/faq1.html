@@ -1,6 +1,8 @@
 <HTML>
 <HEAD>
-<TITLE>Further Frequently Asked Questions about Joy</TITLE>
+<TITLE>The Joy Programming Language - Further Frequently Asked Questions</TITLE>
+<META name="description" content="Joy is a programming language based on the composition of functions and was created by Manfred Von Thun." />
+<META name="keywords" content="joy, joy programming, the joy programming language, la trobe university, manfred, manfred von thun, von thun, john cowan, Joy0, Joy1, Cat, JoyJ, concatenative, concatenative programming language, functional programming, combinators, variable free notation, higher order functions, categories, program = data" />
 </HEAD>
 <BODY>
 Contents:
@@ -8,9 +10,9 @@ Contents:
 <LI>"Why is == an infix operator ?"
 <LI>"But why can't definitions be entered at run-time ?"
 <LI>"What happens if one takes the first of [dup *] ?"
-<LI>"Why does Joy have all those recursion combinators ?
-     Why not just use plain explicit recursion ?"
+<LI>"Why does Joy have all those recursion combinators ?"
 <LI>"So why don't other languages have recursion combinators ?"
+<LI>"Are there any higher order combinators ?
 </OL>
 
 <H2>1. "Why is == an infix operator ?"</H2>
@@ -268,19 +270,20 @@ The body of that definition is accessible by<BR>
 </PRE>
 which will leave the quotation  [rest first] on top of the stack.
 
-<H2>4. "Why does Joy have all those recursion combinators?
-   Why not just use plain explicit recursion?"</H2>
+<H2>4. "Why does Joy have all those recursion combinators?"</H2>
 <P>
 A: In the 70's it was recognised that programs using structured IFs
 and WHILEs are easier to get right and easier to read than programs
 which use GOTOs and in which the pattern of the flow of control
-has to be inferred by laborious analysis.
+has to be inferred by laborious analysis. One reason for adding
+CASE, REPEAT and FOR was that they make programs even more
+explicit and easier to understand. 
 <P>
 In the functional languages which use lists a lot much of list
 processing falls into a few recursion patterns which are often
 abstracted as combinators such as map, filter and fold, and
 also a few variants such as zipwith. Programs which use these
-combinators by name are easy to write and easier to read than
+combinators by name are easier to write and easier to read than
 programs in which the pattern of recursion on lists has to
 be inferred.
 <P>
@@ -359,11 +362,67 @@ using similar techniques it is possible to define
 in these languages counterparts
 of the recursion combinators of Joy. But I have never seen
 such definitions, and hence never their routine use.
+
+<H2>6. Are there any higher order combinators ? </H2>
+<P>
+Combinators take functions as parameters, so combinators are
+second order functions. Are there any second order combinators,
+functions which take first order combinators as parameters -
+in other words third order functions? Are there any functions
+that take as parameters functions which take as parameters functions?
+<P>
+The quick answer is NO, it stops at second order functions.
+<P>
+The more considered answer is that combinators do not take
+functions as parameters but they take quoted programs as parameters.
+It is indeed possible to write programs with combinators
+which take quoted programs as parameters, where the quoted
+program, when executed, will execute another combinator
+taking as parameter another quoted program as parameter, and so on.
+But such apparent higher order examples are just higher order
+<STRONG>uses</STRONG> of the combinator, they are not examples
+of higher order combinators.
+<P>
+The following are some examples, all involving the simple
+i combinators. All just compute the same squaring function.
+The examples are here grouped according whether the <STRONG>use</STRONG>
+of the right-most i combinator is first order, second order or
+third order.
+<PRE>
+first order use          second order use         third order use
+  [dup *]       i
+ [[dup *] i]    i         [dup *]    [i] i              
+[[[dup *] i] i] i        [[dup *] i] [i] i        [dup *] [i] [i] i       
+</PRE>
+<P>
+A less contrived example is the following, used to compute the
+list comprising the successor, the double and the square
+of a given number, for example 7.
+<PRE>
+    7   [[succ] [2 *] [dup *]]   [i]   map     ==>     [8 14 49]
+</PRE>
+The map combinator is mostly <STRONG>used</STRONG> with a quotation
+parameter that computes a first order function, but as this
+example shows, the quotation can also be a combinator.
+As a final example, here is the ifte combinator used to
+branch depending on whether the second item on the stack
+is a leaf (not a list), or a list.
+In the first case the top quotation will be called with
+the i combinator, and in the second case with the map combinator:
+<PRE>
+        [pop leaf]  [i]  [map]  ifte
+</PRE>
+No Joy example is known where a combinator can <STRONG>only</STRONG>
+be used with quoted combinators as parameters.
+(This includes, for example, the operations in Church arithmetic.)
+
+
+
 <P>
 [MYNOTES: higher-order-combs continuations oo mess-pass lazy
-get-put-funct cat-theory]
+need-stack why-postix reflective get-put-funct cat-theory]
 <P>
 Back to homepage for
-<A HREF="/philosophy/phimvt/index.html">Manfred von Thun</A>
+<A HREF="index.html">Manfred von Thun</A>
 </BODY>
 </HTML>

@@ -5,7 +5,7 @@
    content = "stack, postfix notation, lists, higher order functions,
               combinators, map, filter, fold, recursion">
 
-Back to <A HREF="/philosophy/phimvt/joy.html">
+Back to <A HREF="joy.html">
 Main page for the programming language Joy</A>
 
 <H1>An informal tutorial on Joy</H1>
@@ -751,20 +751,18 @@ sequencing of operations: The program causes the computation of the
 sum to occur before the computation of the size.  But it does not
 matter in which order they are computed, in fact on a machine with
 several processors the sum and the size could be computed in parallel.
-Joy has a combinator which addresses this problem: there is one <B>
+Joy has a combinator which addresses this problem: there is <B>
 one</B> data parameters, the aggregate, which is to be fed to <B> two</B>
-functions.  From each of the functions a value is to be <B>
-constr</B>ucted.  Because of the one datum and the two functions, the
-combinator is called <KBD>constr12</KBD>.  The program for the average
-looks like this:
+functions.  From each of the functions a value is to be
+constructed, by calling both functions by means of a combinator
+<B>cleave</B> which produces two values,
+one for the sum and one for the size.
+The program for the average looks like this:
 
 <BR><PRE>  
-        [0 [+] fold]   [size]   constr12   /
+        [0 [+] fold]   [size]   cleave   /
 </PRE>
-
-There are several similar combinators with different combinations of
-trailing digits.
-
+ 
 <H2>Definitions</H2>
 
 In conventional languages the definition of a function of one or more
@@ -1374,18 +1372,18 @@ The current implementation has many other features that
 are best described in more specialised documentation.
 For a brief glance at what is available,
 see the output from the
-<A HREF="/philosophy/phimvt/joy/allhelp.html">online help</A> command.
+<A HREF="joy/allhelp.html">online help</A> command.
 This gives just a list of the names of primitives and defined
 functions when all libraries are loaded.
 For an actual description of the current primitives, see the
 output from the
-<A HREF="/philosophy/phimvt/joy/plain-manual.html">online manual</A> command.
+<A HREF="joy/plain-manual.html">online manual</A> command.
 For definitions of the defined functions, consult the various libraries
 in section 3 of the main page.
 
 <P>
 
-Back to <A HREF="/philosophy/phimvt/joy.html">
+Back to <A HREF="joy.html">
 Main page for the programming language Joy</A>
 
 </BODY>

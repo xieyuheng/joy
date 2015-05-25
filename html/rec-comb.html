@@ -1,0 +1,91 @@
+<H2>"Why does Joy have all those recursion combinators?
+   Why not just use plain explicit recursion?"</H2>
+<P>
+A: In the 70's it was recognised that programs using structured IFs
+and WHILEs are easier to get right and easier to read than programs
+which use GOTOs and in which the pattern of the flow of control
+has to be inferred by laborious analysis.
+<P>
+In the functional languages which use lists a lot much of list
+processing falls into a few recursion patterns which are often
+abstracted as combinators such as map, filter and fold, and
+also a few variants such as zipwith. Programs which use these
+combinators by name are easy to write and easier to read than
+programs in which the pattern of recursion on lists has to
+be inferred.
+<P>
+Joy takes this idea a step further by combinators for recursion
+patterns that are independent of any particular datatype such
+as lists above. For linear recursion there is the combinator
+linrec, its special case tailrec, and even more special case
+while. There is also the more flexible condlinrec. For binary
+recursion there is the combinator binrec, but so far no more
+special or more flexible versions. For recursion with arbitrary
+n-ary branching there is the combinator genrec, so far with
+no variants. For recursion on trees of any type other than lists
+there are several combinators. For nested recursion (as in the
+Ackermann function) there will soon be two combinators nestrec
+and condnestrec. So far there are no combinators for mutual
+recursion. All these combinators are more intuitive and descriptive
+than the well-known "paradoxical" all-purpose recursion combinators
+(Curry's) Y and (Turing's) T which are frequently defined but
+never used because they are all-purpose and hence not descriptive.
+<P>
+Of course the execution of programs without explicit GOTOs typically
+involves its use internally. Similarly, the execution of programs
+with recursion combinators but without explicit recursion typically
+involves its use internally. But programs using combinators are
+easier to write and read than ones using explicit recursion and
+in which the pattern of all, not just list, recursions has to be
+inferred. So, if you like, "Recursion considered harmful".
+<P>
+As a bonus, at least for the current implementation, programs
+using recursion combinators are more efficient than programs
+using explicit recursion.
+
+<H2>"So why don't other languages have recursion combinators ?"</H2>
+A: For several, mostly independent reasons:
+<P>
+1. Joy combinators take quotations as arguments. Other languages
+would have to use lambda abstractions instead. But many have no
+way of capturing the current environments.
+<P>
+2. Apart from this, many languages could not even define a lambda
+counterpart of Joy's simple i combinator - the "dequotation combinator". 
+This rules out most mainstream languages. Some counterpart might be
+definable in the Lisps, ML, Haskell and Prolog/
+<P>
+3. Again indpendently, there will be a problem about Joy's simple
+branching combinator ifte. With "eager" evaluation it is not
+possible to define an ordinary function for branching, as Eva Lou
+Ator will tell you, in SICP p 23. Branching has to be done with
+"special forms" cond or if. To define them one needs delayed
+evaluation or macros. Since the recursion combinators all
+involve branching they need the same.
+<P>
+4. The next hurdle concerns the number of extra parameters
+apart from the quotation parameters for combinators. In Joy
+all parameters, including extra ones just sit on the
+stack. A different language might do one of the following:
+(a) Have several versions of combinators for each possible
+number of extra parameters. (b) If possible, use whatever
+facility the language has for optional parameters, and put
+the extras there. (c) Rewrite all functions including combinators
+as taking a stack (a list) as their sole parameter.
+<P>
+5. Some languages are strongly statically typed, perhaps
+in a polymorphic way. Finite unions can then solve the
+problem that combinators are supposed to take as parameters
+functions of all sorts of base types but also lists of
+these and lists of lists of base types and so on. But I don't
+know whether this can handle lists of mixtures of lists of
+mixtures when the entire mix is unknowable at compile time.
+<P>
+There are languages in which the Y or T combinators
+familiar from the lambda calculus can 
+be defined, or at least collections of variants for different
+number of parameters of the recursing function. Presumably
+using similar techniques it is possible to define
+in these languages counterparts
+of the recursion combinators of Joy. But I have never seen
+such definitions, and hence never their routine use.

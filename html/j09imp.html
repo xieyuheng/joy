@@ -2,7 +2,7 @@
 
 <P>
 Back to
-<A HREF="/philosophy/phimvt/joy.html">
+<A HREF="joy.html">
 Main page for the programming language Joy</A>
 <BR>
 
@@ -338,7 +338,7 @@ and possibly some other values.
 Combinators will execute the terms contained in the quotations.
 <P>
 The file
-<A HREF="/philosophy/phimvt/joy/plain-manual.html">
+<A HREF="joy/plain-manual.html">
 Online manual (raw Joy1) </A>
 gives a very synoptic explanation
 of the inbuilt primitives of <EM>raw Joy1</EM> --
@@ -572,7 +572,7 @@ more elegant, possibility using the "#!" facility
 For Joy such a file would have to start with "#!joy"
 as the first line, and the rest of the file as input to Joy.
 The file
-<A HREF="/philosophy/phimvt/joy/gcd">gcd</A>
+<A HREF="joy/gcd">gcd</A>
 is an example which uses Joy to compute the greatest common
 divisor. After it has been created, it has to be made executable
 with <PRE>$ chmod +x gcd</PRE> and thereafter it
@@ -790,7 +790,7 @@ the second because it is assumed by just about all other libraries
 and hence is quite non-specific.
 <P>
 <DL>
-<DT><A HREF="/philosophy/phimvt/joy/usrlib.joy">usrlib.joy</A><BR>
+<DT><A HREF="joy/usrlib.joy">usrlib.joy</A><BR>
 <DD><P>This <EM>user library</EM> 
 is intended to be just an example of what a personalised
 file <KBD>usrlib.joy</KBD> might look like.
@@ -806,7 +806,7 @@ to include the library described next,
 or it might contain fewer or it might contain more definitions,
 or it might contain definitions of a very different kind.
 
-<DT><A HREF="/philosophy/phimvt/joy/inilib.joy">inilib.joy</A><BR>
+<DT><A HREF="joy/inilib.joy">inilib.joy</A><BR>
 <DD><P>This  <EM>initial library</EM>
 contains a disparate collection of operators and combinators
 that are widely useful.
@@ -827,7 +827,7 @@ that this library is also loaded.
 of still rather general operators and combinators
 but related to specific types or groups of types.
 <DL>
-<DT><A HREF="/philosophy/phimvt/joy/agglib.joy">agglib.joy</A><BR>
+<DT><A HREF="joy/agglib.joy">agglib.joy</A><BR>
 <DD><P>This <EM>aggregate library</EM> contains definitions of
 operators and combinators most of which are applicable to all
 of the three <EM>aggregate</EM> datatypes such as
@@ -846,7 +846,7 @@ these datatypes.
 operators, but in the future these might be moved to a more extensive
 statistics library.)
 
-<DT><A HREF="/philosophy/phimvt/joy/seqlib.joy">seqlib.joy</A><BR>
+<DT><A HREF="joy/seqlib.joy">seqlib.joy</A><BR>
 <DD>This <EM>sequence library></EM> contains definitions of functions
 specific to the <EM>sequence datatypes</EM> such as lists and strings.
 When this library is loaded,
@@ -860,7 +860,7 @@ and inserting into and deleting from sequences.
 to <EM>tree</EM>s or recursive lists,  but in the future
 these might be moved to a more extensive tree library.)
 
-<DT><A HREF="/philosophy/phimvt/joy/numlib.joy">numlib.joy</A><BR>
+<DT><A HREF="joy/numlib.joy">numlib.joy</A><BR>
 <DD>This <EM>numerical library</EM> contains definitions of functions
 and combinators for numerical work
 on integers and floating numbers.
@@ -870,15 +870,15 @@ greatest common divisor and temperature conversion.
 Also included are methods for finding roots of quadratic equations
 and Newton's method for finding solutions of equations in one variable.
 
-<DT><A HREF="/philosophy/phimvt/joy/symlib.joy">symlib.joy</A>
+<DT><A HREF="joy/symlib.joy">symlib.joy</A>
 <BR><DD>This <EM>symbolic library</EM> is for
 purely symbolic manipulation of various notations.
 Currently all the definitions are for
 non-specific translations from one notation to another.
 <BR>There is a
-<A HREF="/philosophy/phimvt/joy/symtst.joy">symtst.joy</A>
+<A HREF="joy/symtst.joy">symtst.joy</A>
 test file and its
-<A HREF="/philosophy/phimvt/joy/symtst.out">symtst.out</A>
+<A HREF="joy/symtst.out">symtst.out</A>
 output.
 This library is currently used by the special libraries
 <KBD>grmlib.joy</KBD> and <KBD>plglib.joy</KBD>, see below.
@@ -892,86 +892,86 @@ particular field or problem.
 
 <DL>
 
-<DT><A HREF="/philosophy/phimvt/joy/mtrlib.joy">mtrlib.joy</A>
+<DT><A HREF="joy/mtrlib.joy">mtrlib.joy</A>
 <BR><DD>A library for <EM>matrices</EM> and <EM>vector</EM> manipulation.
 The vectors are implemented as Joy lists,
 the matrices as lists of lists.
 Either may contain numeric or non-numeric elements.
 <BR>There is a
-<A HREF="/philosophy/phimvt/joy/mtrtst.joy">mtrtst.joy</A>
+<A HREF="joy/mtrtst.joy">mtrtst.joy</A>
 testfile and its
-<A HREF="/philosophy/phimvt/joy/mtrtst.out">mtrtst.out</A>
+<A HREF="joy/mtrtst.out">mtrtst.out</A>
 output.
 
-<DT><A HREF="/philosophy/phimvt/joy/tutlib.joy">tutlib.joy</A>
+<DT><A HREF="joy/tutlib.joy">tutlib.joy</A>
 <BR><DD>A library for writing <EM>interactive sessions</EM>
 such as <EM>tutorials</EM>.
 <BR>Currently there is only one such tutorial (for Joy):
-<A HREF="/philosophy/phimvt/joy/joytut.joy">joytut.joy</A><BR>
+<A HREF="joy/joytut.joy">joytut.joy</A><BR>
 There is a
-<A HREF="/philosophy/phimvt/joy/joytut.com">joytut.com</A>
+<A HREF="joy/joytut.com">joytut.com</A>
 (pseudo) input and its
-<A HREF="/philosophy/phimvt/joy/joytut.out">joytut.out</A>
+<A HREF="joy/joytut.out">joytut.out</A>
 output.
 
-<DT><A HREF="/philosophy/phimvt/joy/lazlib.joy">lazlib.joy</A><BR>
+<DT><A HREF="joy/lazlib.joy">lazlib.joy</A><BR>
 <DD>A <EM>"lazy list" library</EM>,
 for unevaluated infinite or finite lists
 that will only be evaluated as needed.<BR>
 There is a
-<A HREF="/philosophy/phimvt/joy/laztst.joy">laztst.joy</A>
+<A HREF="joy/laztst.joy">laztst.joy</A>
 test file and its
-<A HREF="/philosophy/phimvt/joy/laztst.out">laztst.out</A>
+<A HREF="joy/laztst.out">laztst.out</A>
 output.
 
-<DT><A HREF="/philosophy/phimvt/joy/lsplib.joy">lsplib.joy</A> and
-<A HREF="/philosophy/phimvt/joy/lsplib.lsp">lsplib.lsp</A><BR>
+<DT><A HREF="joy/lsplib.joy">lsplib.joy</A> and
+<A HREF="joy/lsplib.lsp">lsplib.lsp</A><BR>
 <DD>A small (eval-apply) Lisp interpreter in Joy,
 and a small library for this version of Lisp.<BR>
 There is a
-<A HREF="/philosophy/phimvt/joy/lsptst.joy">lsptst.joy</A>
+<A HREF="joy/lsptst.joy">lsptst.joy</A>
 driver for the
-<A HREF="/philosophy/phimvt/joy/lsptst.lsp">lsptst.lsp</A>
+<A HREF="joy/lsptst.lsp">lsptst.lsp</A>
 lisp input and its
-<A HREF="/philosophy/phimvt/joy/lsptst.out">lsptst.out</A>
+<A HREF="joy/lsptst.out">lsptst.out</A>
 output.
 
-<DT><A HREF="/philosophy/phimvt/joy/plglib.joy">plglib.joy</A><BR>
+<DT><A HREF="joy/plglib.joy">plglib.joy</A><BR>
 <DD>A library for <EM>propositional logic</EM> using
 semantic tableaux for determining whether a formula is a tautology
 (or for determining satisfiability).
 This library depends on (and loads) the
 <EM>symbolic library</EM> <KBD>symlib.joy<KBD>.<BR>
 There is a
-<A HREF="/philosophy/phimvt/joy/plgtst.joy">plgtst.joy</A>
+<A HREF="joy/plgtst.joy">plgtst.joy</A>
 file of test input and its
-<A HREF="/philosophy/phimvt/joy/plgtst.out">plgtst.out</A>
+<A HREF="joy/plgtst.out">plgtst.out</A>
 output.
 
-<DT><A HREF="/philosophy/phimvt/joy/grmlib.joy">grmlib.joy</A><BR>
+<DT><A HREF="joy/grmlib.joy">grmlib.joy</A><BR>
 <DD>A <EM>grammar library</EM> for regular expressions
 and context free grammars. Both parsing and generating are
 supported.
 This library depends on (and loads) the
 <EM>symbolic library</EM> <KBD>symlib.joy<KBD>.<BR>
 There is a
-<A HREF="/philosophy/phimvt/joy/grmtst.joy">grmtst.joy</A>
+<A HREF="joy/grmtst.joy">grmtst.joy</A>
 test input and its
-<A HREF="/philosophy/phimvt/joy/grmtst.out">grmtst.out</A>
+<A HREF="joy/grmtst.out">grmtst.out</A>
 output.
 
 </DL>
 
 <P>
 The file
-<A HREF="/philosophy/phimvt/joy/allhelp.html">allhelp.html</A>
+<A HREF="joy/allhelp.html">allhelp.html</A>
 is the output of the <EM>help</EM> command when all
 libraries have been loaded.
 It gives some impression of the size of the Joy implementation so far.
 
 <P>
 The file
-<A HREF="/philosophy/phimvt/joy/joylibs.tar.gz">joylibs.tar.gz</A>
+<A HREF="joy/joylibs.tar.gz">joylibs.tar.gz</A>
 is a gzipped tar file of all *.joy libraries,
 input test files and output files.
 This file is automatically updated when there is any change to the
@@ -1087,7 +1087,7 @@ The <EM>definition</EM> of <KBD>edit</KBD> in <KBD>STDLIB.JOY</KBD>
 remains unchanged.
 <P>
 Back to
-<A HREF="/philosophy/phimvt/joy.html">
+<A HREF="joy.html">
 Main page for the programming language Joy</A>
 
 </BODY>

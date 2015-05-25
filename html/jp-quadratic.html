@@ -1,0 +1,265 @@
+<HTML>
+<HEAD>
+<TITLE>The annoying quadratic formula</TITLE>
+</HEAD>
+<BODY>
+<P>
+14-FEB-05
+<P>
+<EM>Abstract:</EM>
+Complex expressions can be difficult to evaluate in Joy
+and in other stack-based languages, especially when some
+of the parameters are needed repeatedly for the computation
+of intermediate values. This note describes some
+techniques that can be valuable in such cases.
+The example used is the quadratic formula.
+<P>
+An equation of the form   a * x^2  +  b * x  + c  =  0
+has either no solution in the reals, or it has two solutions
+in the reals ("not necessarily distinct" as they say).
+The solutions, if any, are given by
+<PRE>
+             -b  +/- sqrt(b^2 - 4 * a * c)
+             -----------------------------
+                        2 * a
+</PRE>
+R. Kent Dybvig, The SCHEME Programming Languagage, 1987, p 44,
+gives the following definition
+<PRE>
+        (define quadratic-formula
+           (lambda (a b c)
+              (let ([minusb (0 - b)]
+                    [radical (sqrt (- (* b b) (* 4 ( * a c))))]
+                    [divisor (* 2 a)] )
+                 let ([root1 (/ (+ minusb radical) divisor)]
+                      [root2 (/ (- minusb radical) divisor)])
+                   (cons root1 root2)))))
+</PRE>
+For a = 2, b = -4, c = -6  the solutions are x = 3 and x = -1,
+and the programs gives the solutions in the form of a (dotted)
+pair:
+<PRE>
+         (quadratic-formula 2 -4 -6)  =>  (3 . -1)
+</PRE>
+Dybvig remarks (p 45):
+<PRE>
+      ".. by employing two let expressions, the definition makes
+       clear the dependency of root1 and root2 on the values of
+       minusb, radical, and divisor. Equally important, the let
+       expressions make clear the lack of dependencies among minusb, 
+       radical, and divisor and between root1 and root2."      
+</PRE>
+The remainder of this note is concerned with writing a program in Joy
+which does the same thing, using the Scheme program as a model.  The
+general plan is to develop some constructions in Joy which can play the
+same role as the let-expressions in Scheme (or other languages). 
+<P>
+The simplest let-expressions are those in which only a single
+expression is evaluated and given a name, which is then available
+in the body:
+<PRE>
+        (let ([name expression])
+             ( body ))                      
+</PRE>
+In Joy there is no name to be given to the value of the expression, but
+the value of the expression can be pushed on top of the stack by the
+nullary combinator: 
+<PRE>
+        [expression] nullary  body
+</PRE>
+The nullary combinator executes the quotation on top on the remainder
+of the stack, possibly consuming several values, and then restores
+that remainder and pushes whatever top value the execution of the
+quotation had produced.
+<P>
+But this is of no use for multiple let-expressions in which there
+are several names to be defined independently, as in the first
+half of the Scheme program in which three names are defined,
+or in the second half in which two are defined.
+<P>
+The effect of multiple let-expressions can be simulated in Joy by a simple
+but very useful device. The aim is to compute several values
+independently which are to be used later. In Joy these values are
+anomymous. The general pattern is
+<PRE>
+        [[..] [..] [..]]  [i]  map
+</PRE>
+This is perhaps a surprising use of the map combinator. In all cases the
+map combinator expects on top of the stack a single quotation and in most
+cases below that a list or other aggregate of values. But map can also
+handle the case where that list is a list of quotations to be executed. If
+the single quotation is [i], the the quoted i combinator will execute each
+of the three listed quotations and the map combinator assembles these into
+a list of the three values that were on top of the stack at the end of the
+three executions. Note that the three result values are computed
+independently of each other, and each of the three computations can modify
+the stack in any way, and after each of the three computations the
+original stack below the list of three quotations is restored. It is these
+three properties that make the device useful for structuring Joy programs. 
+<P>
+In many cases the three values that have been computed from the three
+quotations are required not as a single list on top of the stack but as
+three independent values. Of course it is easy enough to decompose the
+list, in the present case by
+<PRE>
+        uncons  uncons  uncons  pop
+</PRE>
+This will work even in the rare case where the result list contains
+operators, as in [2 + 3]. But the sequence of uncons'es is clumsy,
+especially if the list is long. It would be preferable to use some code
+which decomposes the list independently of its length. One device is the
+step combinator, which expects a quotations and below that a list or other
+aggregate. It successively puts the elements of the list onto the stack
+and executes the quotation. The top value after each of the executions is
+pushed onto the stack. In the present case the required quotation [],
+which does nothing. So, for example,
+<PRE>
+    1 2 3 [[pop dup *] [+] [2 *]]  [i] map  [] step
+</PRE>
+will leave 1 2 3 4 5 6 on top of the stack, the 6 topmost, after producing
+the list [4 5 6] just after the map. 
+<P>
+Applying these constructions mechanically to the nested multiple
+let-expressions in the Scheme program results in the following definition
+in Joy: 
+<PRE>
+DEFINE
+    quadratic-1  ==                                # a b c => [root1 root2 ]
+        [ [ pop pop 2 * ]                          # divisor
+          [ pop 0 swap - ]                         # minusb
+          [ swap dup * rollup * 4 * - sqrt ] ]     # radical
+        [i] map [] step
+        [ [ + swap / ]                             # root1
+          [ - swap / ] ]                           # root2
+        [i] map  [] step
+        [] cons cons                               # build pair
+        [ pop pop pop pop pop pop ] dip.           # cleanup stack
+</PRE>
+<P>
+But the program is unsatisfactory for a number of reasons:
+<P>
+1. Most glaringly, in line 7 the list of two roots is decomposed by []
+step. But then in line 8 the two roots are recomposed to a list. So, the
+final [] step in line 7, and all of line 8 should be deleted. 
+<P>
+2. In line 4 the list of three intermediate values is also decomposed by
+[] step. Just like a sequence of uncons operations, this will work even in
+the rare case where the list contains operators, as in [2 + swap]. But in
+the case of the quadratic formula the list of intermediate values is just
+a normal list of literals, namely numbers. Because of that it is possible
+to decompose the list by just the i combinator, which will do the same job
+simpler and also more efficiently. 
+<P>
+3. In line 9 the six pops remove the three parameters (a b c) and the
+three inttermeddiate values (divisor minusb radical). A language such as
+Scheme need not (and cannot) explicitly express the disappearancce of
+these values. But the three parameters are no longer needed in the
+computation of the two roots from the three intermediate values. And yet,
+during that computation the three parameters are still visible. But is
+only by inspecting the code for the computations that it becomes apparent
+that the parameters are not used directly. In Scheme the independence is
+not (and cannot be) expressed explicitly. But it can be expressed in Joy.
+The three (dipped) pops for the three parameters can occur as soon as they
+are no longer needed, and that is immediately after the first map.
+Similarly the three (dipped) pops for the three intermediate values can
+occur after the second map. But when the number of pops is small (three in
+this case) we can do better than [pop pop pop] dip.  The combinators
+nullary, unary, binary and ternary are normally used to ensure that a
+quoted program does not consume more than 0, 1, 2 or 3 values from the
+stack. They can also be used to ensure that exactly that many are
+consumed. So the two lots of three pops can both be expressed by the
+ternary combinator. 
+<PRE>
+DEFINE
+    quadratic-2  ==                                # a b c => [root1 root2 ]
+        [ [ [ pop pop 2 * ]                        # divisor
+            [ pop 0 swap - ]                       # minusb
+            [ swap dup * rollup * 4 * - sqrt ] ]   # radical
+          [i] map ]
+        ternary i
+        [ [ [ + swap / ]                           # root1
+            [ - swap / ] ]                         # root2
+          [i] map ]
+        ternary.
+</PRE>
+<P>
+This version of the program is the best of the three in this note.
+It has now been added to the numlib.joy standard library.
+<P>
+There is another device which sometimes can be useful, especially when the
+number of pops is larger than can be handled by a single combinator such
+as ternary.  This might arise if the number of intermediate values is
+large, and they have been computed as a list, most probably by [i] map. In
+such a case that very same list can be used as the (temporary) stack for
+the following computations. The combinator infra expects a list and above
+that a quotation. It will treat the list as the stack and execute the
+quotation using that stack. It will return the modified list on top of the
+regular stack. In the present program for the quadratic formula, after the
+three intermediate values have been computed as a list, the remaining
+computation for the two roots can be done under the control of the infra
+combinator. Note that this is in the last line of the program below. When
+that returns, the required final value will be what is on top of this
+temporary stack, which the first element on the list, and that can be
+extracted with the first operator. The remaining intermediate values
+thereby disappear, no matter how many there were. The device is an
+overkill in the present case for the quadratic formula, but it can be
+useful elsewhere. 
+<P>
+The device can also be used when instead several parameters there is only
+one, but it is a possibly long list of values. This situation does not
+obtain in the present case, but we can make it so by a chain of three
+conses into an initially empty list. This is only done in the program
+below to enable the first use of the infra combinator. So the following
+illustrates the use of the infra combinator twice, once for computing the
+intermediate values, and once for computing the final result. The first
+use relied on the ugly chain of conses at the beginninng, and would not
+really be recommended. But the second use would be a reasonable and more
+widely useful alternative to the ternary combinator. 
+Note also that because of the infra combinator some of the order
+of computations needed to be different from the preceding program. 
+<PRE>
+DEFINE
+    quadratic-3  ==                                # a b c => [root1 root2 ]
+        [] cons cons cons                          # list of parameters
+        [ [ [ [dup * swap] dip * 4 * - sqrt ]      # radical
+            [ pop 0 swap - ]                       # minusb
+            [ 2 * ] ]                              # divisor
+          [i] map ]
+        infra first
+        [ [ [ + swap / ]                           # root1
+            [ - swap / ] ]                         # root2
+          [i] map ]
+        infra first.
+</PRE>
+
+<HL2>Postscript: Combinators as parameters to other combinators</HTML>
+<P>
+The construction [i] map is only one of many others of the form [C] map,
+where C is a combinator. This can be useful when C is a combinator other than i.
+Note that these two are equivalent:
+<PRE>
+        [  [..]     [..]  ]  [..]    ]    [C]  map
+        [ [[..] C] [[..] C] [[..] C] ]    [i]  map
+</PRE> In a way the C distributes from the right (inside the [C])
+over the quotations. An example would be
+<PRE>
+        [1 2 3 4]  [[even] [2 >]]  [filter]  map
+</PRE> which leaves [[2 4] [3 4]] on top of the stack, with the original
+[1 2 3 4] just below.
+<P>
+Constructions in which combinators take other combinators as parameter
+have not been explored much in Joy. Another example,  with two
+quoted combination parameters is the first program below, which is
+equivalent to the second:
+<PRE>
+        [even]  [pop size 5 >]  [       filter]  [       map]  ifte
+                [    size 5 >]  [[even] filter]  [[even] map]  ifte
+</PRE>Both programs expect a list (or set) of numbers, and, for lists of more
+than 5 members they return a list of the even numbers, and for shorter lists
+they return a list of as many truth values, depending on whether
+the corresponding number is even or not. In this example the quotation
+[even] distributes from the right into the then-part end the else-part.
+
+</BODY>
+</HTML>
+

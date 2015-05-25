@@ -1,0 +1,1078 @@
+<HTML>
+<HEAD>
+<TITLE>Survey of Reproducing Programs</TITLE>
+<HEAD>
+
+<BODY>
+<P>
+by Manfred von Thun<BR>
+3-MAY-05
+<P>
+<B>Abstract</B>
+A program is said to be reproducing if running it produces another
+program whichh is also reproducing. A program is said to be self-reproducing
+if running it produces another program identical to itself. This note
+surveys reproducing programs, with emphasis on those in which the
+produced program is different from producing program. Starting with
+the simplest self-reproducing program, two kinds of additions are
+considered: an internal state which changes with every reproduction
+step, and a contained program which affects the stack. There can also
+be interaction between the state and the stack, under control of the
+contained program. The contained program can also use the state as a 
+count-down to self-destruction of the reproducing program. Some
+reproducing programs can call themselves recursively, and the ones
+constructed here differ from the ones normally used for the y-combinator
+in that they survive even after they return from the initial call.
+For convenience some operators are defined which facilitate the definitions of such
+recursive programs. A final discussions deals with achieving similar
+effects without the use of reproducing programs.
+
+<P>
+<A NAME=CONT>Content</A>:<BR>
+<A HREF=#TOC-1>Introduction - reproducing programs</A><BR>
+<A HREF=#TOC-2>Four basic programs</A><BR>
+<A HREF=#TOC-3>Streams or infinite lists</A><BR>
+<A HREF=#TOC-4>Interaction and termination</A><BR>
+<A HREF=#TOC-6>Reproduction for recursion</A><BR>
+<A HREF=#TOC-7>Convenience operators</A><BR>
+<A HREF=#TOC-8>Final remarks</A><BR>
+<A HREF=#TOC-9>foo9</A><BR>
+
+<A NAME=TOC-1><H2>Introduction - reproducing programs</H2></A>
+<P>
+
+Reproducing programs and self-reproducing programs can be written in any
+programming language; indeed the web offers many examples. Such programs
+can be very simple or quite complex, depending on whether the language
+makes it easy to speak about itself. This note is a survey of some
+techniques for writing such programs which go beyond basic reproduction,
+by combining reproduction with two principal additions. 
+
+<P>
+
+The first addition is an internal state of the reproducing program. This
+state can change during each reproductive step. The change may depend only
+on the reproducing program, or it may depend also on what the programs
+finds on the stack at each reproductive step. Examples of the first kind
+are various forms of streams or infinite ("lazy") lists. Examples of the
+second kind are programs which use their internal state to collect
+information about the stack as they were reproducing. 
+
+<P>
+
+The second addition is an internal program which on each reproducing
+step does something to the stack at each reproductive step. This
+internal program is quite distinct from the reproducing part. Better
+known examples are those programs which eliminate explicit recursion
+by using the y combinator. But a similar technique can also be used
+for non-recursive programs. 
+
+<P>
+
+The remainder of this note deals with a new library, a test file
+and its output. 
+The library is in the file
+<A HREF="joy/replib.joy">replib.joy</A>.
+The test file is in
+<A HREF="joy/reptst.joy">reptst.joy</A>.
+The output from the test program is in
+<A HREF="joy/reptst.out">reptst.out</A>.
+The present note consists of comments and discussions added to
+the last mentioned file.
+<P>
+
+The library essentially defines one single module called rep (for
+"reproduction"). The actual definitions occur in the place marked "...",
+but for ease of reading this note they are here given separately where
+they are being discussed. The outline of the library is as follows: 
+
+<PRE>
+(* FILE:   replib.joy *)
+
+"agglib" libload.
+
+LIBRA
+
+    _replib == true;
+
+MODULE rep	# "reproducing programs"
+
+PUBLIC
+
+    ...
+
+END;     # MODULE rep
+
+    REPLIB == "replib.joy - for survey of reproducing programs"
+
+END      # LIBRA
+
+"replib  is loaded\n" putchars.
+
+(* END   replib.joy *)
+</PRE>
+<P>
+
+The bulk of this note consists of commented output from the test file.
+Each section of the test file is preceded by the relevant definitions from
+the module library. 
+
+<P>
+Back to <A HREF=#CONT>Content</A>
+
+<A NAME=TOC-2><H2>Four basic programs</H2></A>
+<P>
+
+This section deals with four very simple reproducing programs in the
+library wich illustrate the basic ideas of this note. The first five
+definitions in the library are just utilities used throughout the library.
+
+<PRE>
+    duco == dup cons;
+    dureco == dup rest cons;
+    durereco == dup rest rest cons;
+
+    count == [0 [succ] infra] swoncat;
+    deposit == [dup [first] dip] swoncat;
+
+    self == [duco]         duco;      exe   == [dip duco]   cons       duco;
+    ints == [dureco] count dureco;    exe-c == [dip dureco] cons count dureco;
+</PRE>
+
+The last two lines contain definitions for the four basic programs; they
+are here written in a way which displays their similarities.  Starting
+with the simple definition of self in the first line, moving to the right
+adds dip and cons in both programs in the right column, moving down adds
+count and replaces duco by dureco in both programs on the second line.
+What exactly these programs do is illustrated by the test file: 
+
+<P>
+
+First, there is a definition of selfr in terms of its counterpart self in
+the module rep from the library.
+
+<PRE>
+	DEFINE 
+	    selfr == rep.self. 
+	 
+	selfr. 
+[[duco] duco]
+	 
+	selfr i i i. 
+[[duco] duco]
+</PRE>
+
+Following the definition, there is a call to selfr, which just
+shows the (quoted) program which is constructed by selfr. Finally, the
+program is called by the i combinator, which executes it, inn readyness
+for two further executions by the i combinator. Each of the executions
+just produces the same quotation. So selfr produces a self-reproducing
+program. 
+
+<P>
+
+The next definition in the test file defines a self-reproducing program
+which on every call by the i combinator will square whatever number it
+finds on the stack. The definitioon uses the program exe from the module
+rep in the library.
+
+<PRE> 	 
+	DEFINE 
+	    squaring == [dup *] rep.exe. 
+	 
+	squaring. 
+[[[dup *] dip duco] [dup *] dip duco]
+	 
+	2 squaring i pop. 
+4
+	 
+	2 squaring i i pop. 
+16
+	 
+	2 squaring i i i pop. 
+256
+</PRE>
+<P>
+
+Following the  definition, the first call to squaring the quotation is
+constructed and the result is shown. In the other three calls the
+quotation is executed once, twice or thrice by the i combinator. This does
+not change the quotation, so it is here just popped off. What remains on
+the stack is the result of squaring 2 once, twice or thrice. 
+
+<P>
+
+The next definition defines a function integers in terms of the function
+ints from the module rep in the library. The function produces a quotation
+containing an internal state which changes at every reproduction; for
+convenience the state can be accessed through the auxiliary function
+state. 
+
+ <PRE>
+	DEFINE 
+	    state == first first; 
+	    integers == rep.ints. 
+	 
+	integers. 
+[[0 [succ] infra dureco] [succ] infra dureco]
+	 
+	integers i i i i i state. 
+5
+	 
+	integers i i i i i i. 
+[[6 [succ] infra dureco] [succ] infra dureco]
+</PRE>
+
+The first call to integers just shows the quotation that has been
+produced, including its initial state 0. The second call shows
+the state after 5 executions by the i combinator, the third
+shows the quotation after 6 executions.
+
+<P>
+
+The next definition is an example which combines what the second
+and third definitions did: it contains a program which does
+something to the stack, and also contains an internal state
+which changes after each execution:
+
+<PRE>
+ 	 
+	DEFINE 
+	    times10-c ==  [10 *] rep.exe-c. 
+	 
+	times10-c. 
+[[0 [succ] infra [10 *] dip dureco] [succ] infra [10 *] dip dureco]
+	 
+	3 times10-c i i i i i pop. 
+300000
+	 
+	3 times10-c i i i i i popd state. 
+5
+</PRE>
+
+The reproducing program constructed by times10-c will multiply any number
+it finds on the stack by 10. The first call to times10-c shows the
+quotation that has been constructed; the second shows just the stack after
+5 executions by i, and the third shows just the state after 5 executions
+by i. 
+ 
+<P>
+Back to <A HREF=#CONT>Content</A>
+
+<A NAME=TOC-3><H2>Streams or infinite lists</H2></A>
+<P>
+
+This section deals with reproducing programs which are essentially
+generalisations of the integers program of the previous section. These
+programs implement streams or infinite or "lazy" lists. First, here are
+four definitions inside the module rep from the library. The function
+c-stream produces programs which implement infinite lists in which all
+members are identical. The function n-stream produces programs in which
+the next member is defined in terms of the previous member by means of an
+internal operation. Both functions have a variant "..-d" which
+simultaneously deposits the current member and computes the next member.
+So these variants can be thought of as computing the uncons function. 
+
+<PRE>
+    c-stream == [dureco] cons dureco;
+    c-stream-d == [dureco] deposit cons dureco;
+
+    n-stream == [infra dureco] cons cons dureco;
+    n-stream-d == [infra dureco] cons deposit cons dureco;
+</PRE>
+
+The first definition in the test file defines the infinite stream whose
+members are the constant 1: 
+
+<PRE>
+	DEFINE 
+	    ones == 1 rep.c-stream. 
+	 
+	ones. 
+[[1 dureco] dureco]
+
+	ones i i i i i. 
+[[1 dureco] dureco]
+
+	ones i i i i i state. 
+1
+</PRE>
+
+The first call to ones shows the quotation that is produced,
+the second shows the (identical) quotation after 5 executions
+by the i combinator, the third call shows the unchanged state
+after 5 executions.
+
+<P>
+
+The next definition defines a stream which starts with
+the member 1.0 and on successive executions by the i
+combinator halves it.
+
+<PRE>
+	DEFINE 
+	    halving == 1.0 [2 /] rep.n-stream. 
+	 
+	halving. 
+[[1 [2 /] infra dureco] [2 /] infra dureco]
+	 
+	halving i i i. 
+[[0.125 [2 /] infra dureco] [2 /] infra dureco]
+	 
+	halving i i i state. 
+0.125
+</PRE>
+
+The first call to halving shows the original quotation,
+the second and third show the resultant quotation and
+the internal state after three executions by i.
+
+<P>
+
+The next definition in the test file defines a variant of the integers
+program of the previous secction, with the difference that the first
+member can be chosen to be other than 0. 
+
+<PRE>
+	DEFINE 
+	    integers-from == [succ] rep.n-stream. 
+	 
+	42 integers-from. 
+[[42 [succ] infra dureco] [succ] infra dureco]
+	 
+	42 integers-from i i i i i state. 
+47
+</PRE>
+
+The first call shows the quotation that is produced when
+the parameter is 42, the second call shows the state after
+five executions by the i combinator.
+
+<P>
+
+The next definition gives an example of a constant stream which
+deposits its first member on every execution. 
+
+<PRE>
+	DEFINE 
+	    ones-d == 1 rep.c-stream-d. 
+	 
+	ones-d. 
+[[1 dup [first] dip dureco] dup [first] dip dureco]
+	 
+	ones-d i i i pop. . . 
+1
+1
+1
+</PRE>
+
+The first call shows the quotation, the second call shows the
+three instances of 1 deposited on the stack by the three
+executions.
+
+<P>
+The next definition shows the depositing variant of the
+halving stream shown earlier.
+
+<PRE>	 
+	DEFINE 
+	    halving-d == 1.0 [2 /] rep.n-stream-d. 
+	 
+	halving-d. 
+[[1 dup [first] dip [2 /] infra dureco] dup [first] dip [2 /] infra dureco]
+	 
+	halving-d i i i i i pop. . . . . 
+0.0625
+0.125
+0.25
+0.5
+1
+</PRE>
+
+As before, the first call shows the quotation,
+the second call shows the states that have been deposited on the
+stack.
+
+<P>
+
+The next definition is for a depositing version of a primes stream.
+Note how the enclosed operation for computing the next member can be
+arbitrarily complex.
+
+<PRE>
+	DEFINE 
+	    primes-d == 2 [succ [prime not] [succ] while] rep.n-stream-d. 
+	 
+	primes-d. 
+[[2 dup [first] dip [succ [prime not] [succ] while] infra dureco]
+    dup [first] dip [succ [prime not] [succ] while] infra dureco]
+	 
+	primes-d i i i i i pop. . . . . 
+11
+7
+5
+3
+2
+</PRE>
+
+The output from the first call shows the quotation minimally formatted
+to make reading easier. The other call shows the five primes that have
+been deposited from the five executions by the i combinator.
+
+<P>
+
+In the streams so far successive members were related by a simple function
+which was used to compute the next member (trivially this is also true of
+the constant streams). But this is not always possible, namely when there
+is no simple function to do the job. For this reason the module rep in the
+library provides another kind of stream in which there are two functions:
+one (here called [N]) to compute an internal next value from its
+predecessor, and another (here called [F]) to compute the final value. Two
+such streams are defined, and both use the same preparatory auxiliary
+function: 
+   
+<PRE>
+    f-stream-prepare ==                 # s [N] [F]
+        swap                            # s [F] [N]
+        [dip] cons concat               # s [F [N] dip]
+        cons                            # [s F [N] dip]
+        [dup] infra                     # [s s F [N] dip]
+        dup rest rest infra             # [Fs Ns F [N] dip]
+        uncons uncons                   # Fs Ns [F [N] dip]
+        [pop dup] swoncat               # Fs Ns [pop dup F [N] dip]
+        [infra durereco] cons;          # Fs Ns [[pop .. dip] infra durereco]
+
+    f-stream == f-stream-prepare cons cons durereco;
+    f-stream-d == f-stream-prepare deposit cons cons durereco;
+</PRE>
+
+<P>
+
+The test file defines the stream of squares ([dup *]) of even numbers ([2
++]) starting with 0. 
+
+<PRE>
+	DEFINE 
+	    even-squares == 0 [2 +] [dup *] rep.f-stream. 
+	 
+	even-squares. 
+[[0 2 [pop dup dup * [2 +] dip] infra durereco]
+      [pop dup dup * [2 +] dip] infra durereco]
+	 
+	even-squares state. 
+0
+	 
+	even-squares i state. 
+4
+	 
+	even-squares i i state. 
+16
+	 
+	even-squares i i i state. 
+36
+	 
+	even-squares i i i i state. 
+64
+</PRE>
+
+The first call shows the quotation slightly formatted.
+The other calls show the squares of the first five even numbers.
+
+<P>
+
+The next definition is for a depositing stream in which the internal state
+is a list of two elements: a power of 10 produced by [10 *] and its
+logarithm base 10. The remainder of the quotation constructs the list. 
+
+<PRE>	 
+	DEFINE 
+	    ten-powers-log10 == 
+	         1  [10 * ] [[] cons [dup log10] infra]  rep.f-stream-d. 
+	 
+	ten-powers-log10. 
+[[[0 1] 10 dup [first] dip [pop dup [] cons [dup log10]
+            infra [10 *] dip] infra durereco]
+           dup [first] dip [pop dup [] cons [dup log10]
+            infra [10 *] dip] infra durereco]
+	 
+	ten-powers-log10 i i i i i i pop. . . . . . 
+[5 100000]
+[4 10000]
+[3 1000]
+[2 100]
+[1 10]
+[0 1]
+</PRE>
+
+The first call shows the quotation that is produced, here formatted
+to extend over four lines.
+The second call shows the five lists that have been deposited from the
+five executions by i.
+
+<P> 
+
+A different and more complete treatment of infinite lists in Joy is in
+the library
+<A HREF="joy/lazlib.joy">
+         lazlib.joy</A>, with testfile
+<A HREF="joy/laztst.joy">
+         laztst.joy</A> and output
+<A HREF="joy/laztst.out">
+         laztst.out</A>.
+Another, more theoretical treatment closer to the present note is in
+<A HREF="joy/jp-reprod.html">
+         jp-reprod.html</A>.
+
+<P>
+Back to <A HREF=#CONT>Content</A>
+
+<A NAME=TOC-4><H2>Interaction and termination</H2></A>
+
+<P>
+
+The previous section dealt with streams, reproducing programs which
+contain an internal state which can change by successive executions. These
+were generalisations of the integers program which was one of the four
+basic programs. Another of the basic reproducing programs provided a
+facility for an internal program which on every reproduction could affect
+the stack below. This section deals with reproducing programs in which
+there is some kind of interaction between the state of the reproducing
+program and the stack below. (This is more general than those versions of
+streams which merely deposit the internal state.)
+
+<P>
+
+The rep module in the library contains a useful definition for
+constructing programs which on every reproduction step allow two-way
+interaction between the state and the stack: 
+
+<PRE>
+    inter ==                            #  s [P]
+        [dip cons dureco] cons          #  s [[P] dip cons dureco]
+        [uncons] swoncat                #  s [uncons [P] dip cons dureco]
+        cons dureco;
+</PRE>
+
+The definition of inter is used in the following three definitions
+in the test file:
+
+<PRE>
+	DEFINE 
+	    accu-list == [] [cons] rep.inter; 
+	    accu-sum == 0 [+] rep.inter; 
+	    accu-product-list == [] [[*] dip cons] rep.inter. 
+	 
+	accu-list. 
+[[[] uncons [cons] dip cons dureco]
+     uncons [cons] dip cons dureco]
+	 
+	1 2 3 4 5 accu-list i i i i i state. 
+[1 2 3 4 5]
+	 
+	accu-sum. 
+[[0 uncons [+] dip cons dureco]
+    uncons [+] dip cons dureco]
+	 
+	1 2 3 4 5 accu-sum i i i i i state. 
+15
+
+	accu-product-list. 
+[[[] uncons [[*] dip cons] dip cons dureco]
+     uncons [[*] dip cons] dip cons dureco]
+	 
+	1 10 2 100 3 1000 4 10000 accu-product-list i i i i state. 
+[10 200 3000 40000]
+</PRE>
+
+Each of the three definitions is used twice: once to show the (slightly
+formatted) quotation that it produces, and once with its state after a
+number of executions by i. The first, accu-list, just accumulates whatever
+single items it finds and enters them into its state which is a list. The
+second, accu-sum, accumulates single into its state by adding them to its
+initial value 0. The third accu-product list accumulates in a list the
+products of pairs of numbers. 
+
+<P>
+
+The remainder of this section deals with reproducing programs
+which have a limited life span. This is implemented by a downwards
+counter; when that reaches 0 the program no longer does what it did
+before but degenerates into the bland self-reproducing program
+selfr. Such reproducing programs terminate their activity.
+The definition below is from the library:
+
+<PRE>
+    exe-t ==                            # N [P] => [[N [I] [T] [E] ifte] ..]
+        [dip dureco] cons               # N [[P] dip dureco]
+        [[pred] infra] swoncat          # N [[pred] infra [P] dip dureco]
+        [ifte] cons                     # N [[E] ifte]
+        [pop [[duco] duco]] swons        # N [[pop [[duco] duco] [E] ifte]
+        [first null] swons              # N [[first null] [T] [E] ifte]
+        cons dureco;                    # [[N [I] [T] [E] ifte] ..]
+</PRE>
+
+The definition of exe-t in the library is used in each of these two 
+definitions in the test file: The first will add numbers on the stack
+up to three times and then terminate, the second will do the same
+up to four times.
+
+<PRE>
+	DEFINE 
+	    max-3-adds == 3 [+] rep.exe-t; 
+	    max-4-adds == 4 [+] rep.exe-t. 
+	 
+	          max-3-adds. 
+[[3 [first null] [pop [[duco] duco]] [[pred] infra [+] dip dureco] ifte] [first null] [pop [[duco] duco]] [[pred] infra [+] dip dureco] ifte]
+	 
+	 
+	      2 1 max-3-adds i pop. 
+3
+	 
+	    3 2 1 max-3-adds i i pop. 
+6
+	 
+	  4 3 2 1 max-3-adds i i i pop. 
+10
+	 
+	5 4 3 2 1 max-3-adds i i i i pop. . 
+10
+5
+	 
+	5 4 3 2 1 max-4-adds i i i i pop. 
+15
+</PRE>
+
+The first call to max-3-adds just shows the reproducing program that has
+been constructed, and the first three executions by the i combinator show
+the results of up to three additions. The fourth shows that max-3-adds wil
+not perform the fourth addition, and the last shows that max-4-adds does. 
+
+<P>
+Back to <A HREF=#CONT>Content</A>
+
+<A NAME=TOC-6><H2>Reproduction for recursion</H2></A>
+<P>
+
+The programs in the previous sections all did their specific tasks before
+their actual reproduction. The programs in the remaining sections do this
+in the reverse order: first they reproduce, then they do their specific
+tasks. This has the consequence that the task may include a recursive call
+to themselves. The simplest programs of this kind essentially perform the
+y combinator that is well known in the literature. The more elaborate
+programs perform various additional tasks. 
+
+<P>
+
+The four definitions below are from the rep module in the library.
+The simplest is fix, which is for implementing anonymous recursion.
+The second adds a counter as an internal state;
+the counter is incremented on every call whether direct or recursive.
+The third is more complex, it takes as parameters a program [P]
+for recursion, a state s and a program [I] for interaction.
+The fourth is a special case of the third: the state is an empty list
+and the interaction program simply conses a copy of the top of
+stack into that list to record a trace of calls.
+
+<PRE>
+    fix == [duco] swoncat duco;
+    fix-c == [0 [succ] infra dureco] swoncat dureco;
+    fix-i ==                            # [P] s [I]
+        [dip cons dureco] cons          # [P] s [[I] dip cons dureco]
+        [uncons] swoncat                # [P] s [uncons [I] dip cons dureco]
+        cons                            # [P] [s uncons [I] dip cons dureco]
+        swoncat                         # [s uncons [I] dip cons dureco P]
+        dureco;
+    fix-a == [] [[cons] unary] fix-i;
+</PRE>
+
+In the test file there are the following two definitions for the factorial
+function in terms of the fix constructor. The first is for the usual form
+like the y combinator, where the program only reproduces on the way down
+during recursion and is deleted (by one of the pop's) when the recursion
+bottoms out. Consequently the reproducing program is no longer in the way
+of the multiplication on the way up. In the second version the reproducing
+program survives all the way, and after the final result has been produced
+it is still available for another computation. 
+
+<PRE>
+	DEFINE 
+	   fact0 == [[pop null] [pop pop 1  ] [[dup pred] dip i  *     ] ifte]; 
+	   fact  == [[pop null] [[pop 1] dip] [[dup pred] dip i [*] dip] ifte]. 
+	 
+	6 fact0 rep.fix i. 
+720
+	 
+	6 fact  rep.fix i. . 
+[[duco [pop null] [[pop 1] dip] [[dup pred] dip i [*] dip] ifte]
+  duco [pop null] [[pop 1] dip] [[dup pred] dip i [*] dip] ifte]
+720
+	 
+	3 fact  rep.fix i i. . 
+[[duco [pop null] [[pop 1] dip] [[dup pred] dip i [*] dip] ifte]
+  duco [pop null] [[pop 1] dip] [[dup pred] dip i [*] dip] ifte]
+720
+</PRE>
+
+The first example shows the conventional calculation of factorial(6). The
+second shows the same with the surviving program (slightly formatted)
+still on the stack. The third shows the calculation of
+factorial(factorial(3)). The program that survived the first call by the i
+combinator is used again for a second call by the i combinator. 
+
+<P>
+
+In the test file the first three definitions below give variants of the
+reproducing factorial program. The first is just the plain version already
+seen above. The second also has a counter for the calls, and the third
+also has an accumulator for the parameters on the stack. The final two
+definitions are just utilities for showing the counter or the accumulator. 
+
+<PRE>
+	DEFINE 
+	    fact-fix   == fact rep.fix; 
+	    fact-fix-c == fact rep.fix-c; 
+	    fact-fix-a == fact rep.fix-a; 
+	 
+	    steps == "steps: " putchars state putln; 
+	    trace == "trace: " putchars state putln. 
+	 
+	3 4 5  fact-fix   i swap put i swap put i swap putln pop. 
+120 24 6 
+	 
+	3 4 5  fact-fix-c i swap put i swap put i swap putln steps. 
+120 24 6 
+steps: 15 
+	 
+	3 4 5  fact-fix-a i swap put i swap put i swap putln trace. 
+120 24 6 
+trace: [0 1 2 3 0 1 2 3 4 0 1 2 3 4 5] 
+</PRE>
+
+The call to fact-fix just gives the factorials for three numbers,
+3, 4 and 5. The call to fact-fix-c also gives the count of all
+calls made, and the third also gives a trace of the parameters.
+
+<P>
+
+Also in the test file are the following definitions for computing the
+Fibonacci function. This function can be implemented very efficiently to
+run in linear time, but it is often defined using binary recursion,
+running in exponential time, to illustrate one or the other matter. This
+latter for is often called the "naive Fibonacci", and this explains the
+leading "n" in the names below. The first definition just defines the
+quotation parameter for the other three, similar to the preceding thre
+factorial function. 
+
+<PRE>
+	DEFINE 
+	    nfib == 
+	        [ [ pop small ] 
+	          [ [pop 1] dip ] 
+	          [ [pred dup pred] dip 
+	            dip swap i 
+	            [+] dip ] 
+	          ifte ]; 
+	 
+	    nfib-fix == nfib rep.fix; 
+	    nfib-fix-c == nfib rep.fix-c; 
+	    nfib-fix-a == nfib rep.fix-a. 
+	 
+	nfib-fix. 
+[[duco [pop small] [[pop 1] dip]
+     [[pred dup pred] dip dip swap i [+] dip] ifte]
+  duco [pop small] [[pop 1] dip]
+     [[pred dup pred] dip dip swap i [+] dip] ifte]
+	 
+	6 nfib-fix i pop. 
+13
+	 
+	6 nfib-fix-c i swap putln steps. 
+13 
+steps: 25 
+	 
+	6 nfib-fix-a i swap putln trace. 
+13 
+trace: [0 1 2 1 0 1 2 3 4 1 0 1 2 3 0 1 2 1 0 1 2 3 4 5 6] 
+	 
+	0 __settracegc. 
+	 
+	30 nfib-fix-c i swap putln steps. 
+1346269 
+steps: 2692537 
+	 
+</PRE>
+
+The first call, to nfib-fix, just shows the reproducing program, sligtly
+formatted. The next three show the results of calls with the parameter 13.
+Finally, there is a call with the parameter 30 to show the very large
+number of reproducing steps. Because these steps required many garbage
+collections, the usual trace information has been switched off beforehand. 
+
+<P>
+Back to <A HREF=#CONT>Content</A>
+
+<A NAME=TOC-7><H2>Convenience operators</H2></A>
+
+<P>
+
+The two functions factorial and Fibonacci in the preceding section
+were chosen because they are well known examples of linear and binary
+recursion. In both cases three versions were given, in both cases based on
+the core quotation containing three quotations and the ifte combinator.
+Much of the complexity of the core quotations is due to the fact that
+these are not recursive definitions but use a reproducing program.
+It would be convenient if there were more natural ways of writing
+the core quotation. This can indeed be done, by two program constructors
+whose program parameters are identical to those used by the
+linrec and binrec combinators that are built into Joy.
+Both constructors use a common and quite complex feature
+which here is called _expand. (The leading underscore in the name
+is just to indicate that it is not a function likely to be wanted
+elsewhere.) Here is the definition, in the rep module of the
+library. Following it are the definitions of the linear and binary
+constructors. As may be seen, the two definitions only differ
+in often the internal recursion occurs.
+
+<PRE>
+    _expand ==                          # [I] [T] [R1] [R2] [r]  ==>
+                          # [ [pop I] [[T] dip] [[R1] dip r [R2] dip] ifte ]
+        swap                            # [I] [T] [R1] [r] [R2]
+        [dip] cons                      #  .. .. .. .. [[R2] dip]
+        concat                          #  .. .. .. [r [R2] dip]
+        [dip] swoncat                   #  .. .. .. [dip r [R2] dip]
+        cons                            #  .. .. [[R1] dip r [R2] dip]
+        [ [dip] cons                    #  .. [[T] dip] ..
+          [ [pop] swoncat] dip ]        #  [pop [I]] .. ..
+        dip
+        [ifte] cons cons cons;          # [ .. .. .. ifte ]
+
+    linear == [i] _expand;
+    binary == [dip swap i] _expand
+</PRE>
+
+<P>
+
+In the test file the constructors linear and binary are used to define the
+more readable versions of three core quotations, one for factorial, one
+for the length of sequences, and one for naive Fibonacci. The syntactic
+similarity of the parameters to the parameters for the inbuilt linrec andd
+binrec combinators should be noted. These are then used to construct the
+three reproducing programs, the one for length with an accumulator, the
+other two plain vanilla. 
+
+<PRE>
+	DEFINE 
+	    fact-lin == [null] [pop 1] [dup pred] [*] rep.linear; 
+	    length-lin == [null] [pop 0] [rest] [succ] rep.linear; 
+	    nfib-bin == [small] [pop 1] [pred dup pred] [+] rep.binary; 
+	 
+	    fact-fix == fact-lin rep.fix; 
+	    length-fix-a == length-lin rep.fix-a; 
+	    nfib-fix == nfib-bin rep.fix. 
+	 
+	4 fact-fix i pop. 
+24
+	 
+	[2 5 3 7 6] [a b c] length-fix-a i swap put i swap putln trace. 
+3 5 
+trace: [[] [6] [7 6] [3 7 6] [5 3 7 6] [2 5 3 7 6] [] [c] [b c] [a b c]] 
+	 
+	6 nfib-fix i pop. 
+13
+	 
+	6 nfib-bin [] [[dup put] dip] rep.fix-i i newline pop. 
+6 5 4 3 2 1 0 1 2 1 0 3 2 1 0 1 4 3 2 1 0 1 2 1 0 
+13
+</PRE>
+
+<P>
+
+
+In the calls, the reproducing factorial program is tested just once, the
+length program twice in succession on two lists, with a trace of what the
+accumulated parameters were. The Fibonacci program is called twice with
+the parameter 6. The second version uses the interactive fix-i constructor
+from the library to construct a reproducing program which writes ([dup
+put]) the current parameter to the output. This gives the trace of the
+parameters in the reverse order than they would be given if an acumulator
+had been used.
+	 
+<P>
+
+Also in the test file are a a readable definition of the core quotation
+for quicksort, followed by a definition of a reproducing version with a
+counter of the calls. The third definition is for tests which will show
+the counter. 
+
+<PRE>
+	DEFINE 
+	    qsort-bin == [small] [] [uncons [>] split] [enconcat] rep.binary; 
+	    qsort-fix-c == qsort-bin rep.fix-c; 
+	    qtest == qsort-fix-c i state. 
+	 
+	[5 10 9 14 7 18 1 4 15 3 20 19 8 11 2 6 12 13 16 17] qtest. . 
+29
+[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+	 
+	[10 5 3 2 4 1 8 7 9 6 15 13 12 14 11 18 17 19 16 20] qtest. . 
+25
+[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+	 
+	[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20] qtest. . 
+39
+[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+	 
+	[20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1] qtest. . 
+39
+[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+	 
+	"You can also sort strings, of course" qtest. . 
+55
+"      ,Yaaccefgilnnooooorrrsssssttuu"
+</PRE>
+
+In all the calls except the last, qtest is used on a list of the first 20
+positive integers. In each case the same sorted list is produced, but the
+number of calls needed to produce the result depends a great deal on the
+distribution in the original list.  In the first call the original is more
+or less random, and 29 calls are required. In the second call the original
+has been carefully constructed to minimise calls to 25. In the last two
+calls the original lists are strictly ascending or descending, requiring 39
+calls both. This is a familiar feature of the quicksort algorithm. 
+The very last call to quicksort shows that it also sorts strings.
+
+<P>
+Back to <A HREF=#CONT>Content</A>
+
+<A NAME=TOC-8><H2>Final remarks</H2></A>
+
+How efficient are reproducing programs? To start, here again is the
+first, the selfreproducing program:
+
+<PRE>
+        [[duco] duco]  i   ==>   [[duco] duco]
+</PRE>
+
+The steps required for one reproductions are:
+
+<PRE>
+    1. Execute the i combinator to activate the outer quotation
+    2. Push the inner quotation [duco]
+    3. Execute the duco (from the outer quotation)
+    4. This expands to duplicating what has just been pushed,
+    5. followed by consing the two together.
+</PRE>
+
+Hence a total of five steps. This could be optimised by inlining the duco: 
+
+<PRE>
+        [[dup cons] dup cons]  i   ==>   [[dup cons] dup cons]   
+</PRE>
+
+In this way step 3 is eliminated, and only four steps are required.  For
+the more complex programs in this note the actual reproducing steps are
+much the same: 1. execute the i combinator, 2. push the inner quotation, a
+step which is independent of the size of the inner quotation. then 3.
+execute duco or dureco or durereco, in 2 or 3 or 4 further steps. Again
+step 3. could be eliminated by inlining. By turning the three operators
+duco, dureco and durereco into Joy primitives, each reproduction would be
+executed in three steps: the i combinator, the push for the internal
+quotation, and then the new primitive. So reproduction of itself
+is not an intrinsically expensive operation.
+
+<P>
+
+Of course the more complex programs did other things apart from just
+reproducing, so they are longer in the first place. But half their actual
+length is due to their internal quotation, which always has to be pushed -
+in one simple step. The remainder of their length is due to two sources:
+doing their intended job, and doing some additional work to fit in with
+the implementation by reproduction. The part due to the intended job
+varies with the nature of the job, of course. And the additional work is
+probably much the same with any other implementation. 
+
+<P>
+
+But it is worth considering which several things done in this note by
+reproduction could also be done in other ways.
+Most of the reproducing programs discussed here
+added either an internal state or an internal program or both
+to a simple repoducing program.
+Can their effects be achieved by other means?
+Clearly the internal state could be replaced by an item on the stack,
+and the internal program which does the principal job could well
+be an ordinary one which does not have to reproduce.
+Now the question does arise whether extra jobs such as
+keeping a count of the number of calls or maintaining an accumulator
+can be done in a clean manner.
+If the programs are designed that way from the start they clearly can.
+However, some of the constructions for reproducing programs
+in this note have been more flexible than that:
+they supplied the basis for an ordinary program, such as for sorting,
+together with several ways of executing it:
+Either plain vanilla, or with an execution count, or with
+an accumulator.
+
+<P>
+
+So in some respects these constructions behaved like combinators,
+in that various basic programs could be mixed with various ways
+of executing them. There seems to be a superficial difference:
+ordinary combinators do not change the actual code inside the quotation,
+whereas these constructions seem to do just that.
+But firstly, this difference would be more than superficial,
+and secondly, this is not what actually occurs. This needs some
+elaboration.
+ 
+<P>
+
+Let X be one of the reproducing recursive programs of the previous section,
+for factorial, Fibonacci or sorting, together with the various
+constructions that enabled plain vanilla execution, or execution
+with a call count or with a trace. They all consisted of a basic
+program, say basic-X, specific to one of the three functions,
+and then the constructions that created three varieties,
+say do-X, do-counting-X and do-tracing-X, each to be called by
+the i combinator. For the counting and the tracing versions
+the basic code was substantially modified, but mostly this
+involved replacing a simple quotation [Q] by a quotation [[Q] dip].
+So [Q] was not touched at all. A few other modifications involved
+replacing a quotation [Q] by [pop Q], but again without changing [Q].
+Therefore the only difference between ordinary combinators and
+the constructions here was that the result of the construction
+was to be called by the i combinator - something which is not
+true of ordinary combinators.
+
+<P>
+
+It is probably true that any of the effects achieved by reproducing
+programs can also be achieved by other means. Instead of making
+the state a part of the reproducing program, the state could
+be an additional item on the stack - and as such it does not
+need to be extracted from, and later re-incorporated into the
+reproducing program at every step. 
+The additional code required to produce a call count or to trace
+or anything similar can be incorporated mechanically into just about
+any ordinary recursive Joy program. For such features in non-recursive
+programs there is also the less often used x combinator, which
+might have been defined by dup i.  
+
+<P>
+
+In conclusion, although this survey might not have unearthed any techniques
+dramatically different from more conventional ones, the topic of reproducing
+programs is of some intrinsic interest. After all, many woes of computer
+security are precisely due to malicious reproducing programs that infect
+our systems. 
+
+<P>
+
+Back to <A HREF=#CONT>Content</A>
+
+<P>
+
+Back to <A HREF="joy.html">
+The programming language Joy </A>
+
+</BODY>
+</HTML>

@@ -1,4 +1,8 @@
-<TITLE>Recursion Theory and Joy</TITLE>
+<HEAD>
+<TITLE>The Joy Programming Language - Recursion Theory and Joy</TITLE>
+<META name="description" content="Joy is a programming language based on the composition of functions and was created by Manfred Von Thun." />
+<META name="keywords" content="joy, joy programming, the joy programming language, la trobe university, manfred, manfred von thun, von thun, john cowan, Joy0, Joy1, Cat, JoyJ, concatenative, concatenative programming language, functional programming, combinators, variable free notation, higher order functions, categories, program = data" />
+</HEAD>
 <H1>Recursion Theory and Joy</H1>
 <I> by Manfred von Thun </I>
 <P>
@@ -371,7 +375,7 @@ with the elimination of recursion even for the recursion combinators.
 
 The recursive definition of a recursion combinator can of course also
 be given in other languages.  For an example in the lambda calculus
-see <A HREF="REFS.HTML#{Henson87}">{Henson87}</A>.  For an example in ML see <A HREF="REFS.HTML#{Sokolowski91}">{Sokolowski91}</A>.
+see <A HREF="refs.html#{Henson87}">{Henson87}</A>.  For an example in ML see <A HREF="refs.html#{Sokolowski91}">{Sokolowski91}</A>.
 
 <H2>Theorems in recursion theory</H2>
 
@@ -460,7 +464,7 @@ these languages programs can operate on other programs or on other
 data to produce other programs which may then be executed.  Because of
 this, arithmetisation is not necessary, functions can take programs
 rather than G&#246;del numbers of programs as arguments, and
-metatheoretic proof become much easier.  <A HREF="REFS.HTML#{Phillips92}">{Phillips92}</A> writes
+metatheoretic proof become much easier.  <A HREF="refs.html#{Phillips92}">{Phillips92}</A> writes
 
 <BLOCKQUOTE>
 One might wonder how differently recursion theory might be viewed
@@ -470,7 +474,7 @@ if it had arisen out of practical developments instead of predating them.
 Indeed, one might speculate how much more natural computability theory
 would have been if Lisp has been invented thirty years earlier.
 Readers might want to pursue this topic, see the discussion in
-<A HREF="REFS.HTML#{Hofstadter85}">{Hofstadter85}</A> starting on p 444, and his very startling conclusion
+<A HREF="refs.html#{Hofstadter85}">{Hofstadter85}</A> starting on p 444, and his very startling conclusion
 on p 449.
 
 <P>
@@ -526,7 +530,7 @@ structure, and it may help to get used to that.
 
 The parametrisation theorem generalises to any number <EM> m</EM> of
 arguments that are parametrised.  Consequently it is often called the
-<EM>S-m-n theorem</EM>, see <A HREF="REFS.HTML#{Rogers67}">{Rogers67}</A>.  The "S" stands for
+<EM>S-m-n theorem</EM>, see <A HREF="refs.html#{Rogers67}">{Rogers67}</A>.  The "S" stands for
 "substitution" - it means that <EM> m</EM> of the <EM> n</EM> formal
 parameters are replaced by fixed values.  In Joy notation repeated
 <CODE>cons</CODE> operations can parameterise for any <EM> m</EM>,
@@ -601,7 +605,7 @@ like to see what they do:
 </PRE>
 <P>
 
-In <A HREF="REFS.HTML#{Smullyan61}">{Smullyan61}</A> theory of formal systems of (character) strings, the
+In <A HREF="refs.html#{Smullyan61}">{Smullyan61}</A> theory of formal systems of (character) strings, the
 <EM> norm</EM> or diagonalisation of a string <CODE>X</CODE> is
 defined to be <CODE>X</CODE> followed by its own G&#246;del number in
 dyadic notation.  In Joy the detour via G&#246;del number is eliminated
@@ -640,7 +644,7 @@ But this holds for all <CODE>[P]</CODE>. So we may infer
 
 An important result in computability is
 the <EM>recursion theorem</EM>, see for example
-<A HREF="REFS.HTML#{Rogers67}">{Rogers67}</A>.
+<A HREF="refs.html#{Rogers67}">{Rogers67}</A>.
 It states:
 <BLOCKQUOTE>
 For every function  P  there is a G&#246;del number of a function  Q 
@@ -712,7 +716,7 @@ will be called the <KBD>fix</KBD> operator.  We also define the
 </PRE>
 
 This is the Joy counterpart of Curry's "paradoxical" <EM>Y
-combinator</EM> (uppercase), see <A HREF="REFS.HTML#{Curry58}">{Curry58}</A>.  This combinator is well
+combinator</EM> (uppercase), see <A HREF="refs.html#{Curry58}">{Curry58}</A>.  This combinator is well
 known in the literature on the lambda calculus and on combinatory
 logic.
 
@@ -730,7 +734,7 @@ The S-m-n theorem is the basis for <EM>partial evaluation</EM> or
 <EM>program specialisation</EM>.  A special case for this is the
 partial evaluator <EM>mix</EM> which can transform an interpreter into
 a compiler, and can transform itself into a compiler generator.
-<A HREF="REFS.HTML#{Jones92}">{Jones92}</A> shows that such transformations can be done realistically
+<A HREF="refs.html#{Jones92}">{Jones92}</A> shows that such transformations can be done realistically
 only if the partial evaluator has primitives in terms of which the
 fixpoint constructions of the recursion theorem can be implemented
 efficiently.  The two primitives chosen are in fact very close to
@@ -739,7 +743,7 @@ Joy's <CODE>i</CODE> combinator and quotation.
 <P>
 
 The recursion theorem leads in a few steps to Rice's theorem, see
-<A HREF="REFS.HTML#{Rogers67}">{Rogers67}</A>, which encapsulates all the bad news of computability
+<A HREF="refs.html#{Rogers67}">{Rogers67}</A>, which encapsulates all the bad news of computability
 theory: for example the <EM>halting problem</EM>, or the impossibility
 of writing programs which check other programs - implementation,
 student exercises - for correctness.
@@ -982,8 +986,8 @@ The Y combinator of the lambda calculus does not work at all for
 applicative order.  No matter what the function is, the call with the
 Y combinator will try to do the unending sequence of substitutions and
 hence fail to terminate.  Therefore a different version of the Y
-combinator has to be used, see <A HREF="REFS.HTML#{Stoy77}">{Stoy77}</A>, <A HREF="REFS.HTML#{Henson87}">{Henson87}</A>, <A HREF="REFS.HTML#{Paulson92}">{Paulson92}</A>,
-<A HREF="REFS.HTML#{Winskel93}">{Winskel93}</A>.
+combinator has to be used, see <A HREF="refs.html#{Stoy77}">{Stoy77}</A>, <A HREF="refs.html#{Henson87}">{Henson87}</A>, <A HREF="refs.html#{Paulson92}">{Paulson92}</A>,
+<A HREF="refs.html#{Winskel93}">{Winskel93}</A>.
 
 <P>
 
@@ -1029,12 +1033,12 @@ under applicative order evaluation.
 
 It is possible to generalise fixpoint combinators for mutual
 recursion.  For the lambda calculus this is done for example by
-<A HREF="REFS.HTML#{Kogge91}">{Kogge91}</A>, shows how pairs of mutually recursive definitions can be
+<A HREF="refs.html#{Kogge91}">{Kogge91}</A>, shows how pairs of mutually recursive definitions can be
 eliminated by using a pair of rather complicated mutually recursive
 combinators Y1 and Y2.  A similar technique is explained in
-<A HREF="REFS.HTML#{Henson87}">{Henson87}</A>.  Constructions such as these rely on the existence of
+<A HREF="refs.html#{Henson87}">{Henson87}</A>.  Constructions such as these rely on the existence of
 <EM>double fixpoints</EM>, whose existence follows from a <EM>double
-recursion theorem</EM> (see for example <A HREF="REFS.HTML#{Smullyan94}">{Smullyan94}</A>).  Presumably
+recursion theorem</EM> (see for example <A HREF="refs.html#{Smullyan94}">{Smullyan94}</A>).  Presumably
 these can be translated into Joy, too.
 
 <H2>Rice's theorem</H2>
@@ -1118,12 +1122,12 @@ was false.  So there cannot be a program <CODE>PF</CODE>.
 <P>
 
 The above proof of Rice's theorem for Joy is adapted from a proof for
-recursive functions in <A HREF="REFS.HTML#{Phillips92}">{Phillips92}</A>.  Several well-known
+recursive functions in <A HREF="refs.html#{Phillips92}">{Phillips92}</A>.  Several well-known
 <EM>paradox</EM>es are instances of the recursion theorem, for example
 the <EM>Liar paradox</EM> and <EM>Grelling's paradox</EM> use as the
 program <CODE>[P]</CODE> the simple program <CODE>[i not]</CODE>.
 Recent discussions of the Liar and related problems can be found in
-<A HREF="REFS.HTML#{Martin70}">{Martin70}</A> and in <A HREF="REFS.HTML#{Barwise-Etchemendy87}">{Barwise-Etchemendy87}</A>.
+<A HREF="refs.html#{Martin70}">{Martin70}</A> and in <A HREF="refs.html#{Barwise-Etchemendy87}">{Barwise-Etchemendy87}</A>.
 
 
 <H2>Other self-reproducing and self-describing programs</H2>
@@ -1410,10 +1414,10 @@ This shows that <CODE>Q</CODE> is indeed a fixpoint for <CODE>P</CODE>.
 
 Different recursion combinators, and indeed a whole hierarchy of them,
 are well known in the literature on <EM>lambda calculus</EM> and
-<EM>combinatory logic</EM>; see for example <A HREF="REFS.HTML#{Barendregt84}">{Barendregt84}</A>,
-<A HREF="REFS.HTML#{Henson87}">{Henson87}</A>, <A HREF="REFS.HTML#{Revesz88}">{Revesz88}</A>.  Possibly one of the most satisfying
+<EM>combinatory logic</EM>; see for example <A HREF="refs.html#{Barendregt84}">{Barendregt84}</A>,
+<A HREF="refs.html#{Henson87}">{Henson87}</A>, <A HREF="refs.html#{Revesz88}">{Revesz88}</A>.  Possibly one of the most satisfying
 introductions to combinatory logic is to be found in the remarkable
-little book <A HREF="REFS.HTML#{Smullyan90}">{Smullyan90}</A> <EM> To Mock a Mockingbird</EM> in which he
+little book <A HREF="refs.html#{Smullyan90}">{Smullyan90}</A> <EM> To Mock a Mockingbird</EM> in which he
 manages to combine humour and rigour.  Part III is a self-contained
 exposition to combinatory logic in which fancyful names are given to
 lambda calculus combinators.
@@ -1472,8 +1476,8 @@ The <CODE>x</CODE> combinator <EM> might</EM> have been defined by
 </PRE>
 <P>
 
-Similar lambda calculus constructions are discussed in <A HREF="REFS.HTML#{Tennent76}">{Tennent76}</A>,
-<A HREF="REFS.HTML#{Bauer-Woessner82}">{Bauer-Woessner82}</A>, <A HREF="REFS.HTML#{Schmidt86}">{Schmidt86}</A> and <A HREF="REFS.HTML#{Tennent91}">{Tennent91}</A>.
+Similar lambda calculus constructions are discussed in <A HREF="refs.html#{Tennent76}">{Tennent76}</A>,
+<A HREF="refs.html#{Bauer-Woessner82}">{Bauer-Woessner82}</A>, <A HREF="refs.html#{Schmidt86}">{Schmidt86}</A> and <A HREF="refs.html#{Tennent91}">{Tennent91}</A>.
 
 <P>
 

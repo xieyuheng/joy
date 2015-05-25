@@ -1,0 +1,210 @@
+</PRE>
+</HTML>
+<HTML>
+<TITLE>MiniJoy - a small Joy-in-Common-Lisp</TITLE>
+<P>
+This is an antique version of Joy which I wrote many years ago.
+As will be apparent to any expert, this is a beginner's Lisp
+program.
+I have not had access to any Lisp for a very long time,
+so I cannot say much about it.
+I wrote it on a Data General machine, and the Lisp thereon
+had some quirks which I did not understand:
+in particular, for the compiler to work one had to compile (load ? I can't remember)
+the program twice (!). But it also worked when interpreted.
+From memory, the translation of (proper) Joy to this Lisp-version
+was
+<PRE>
+      [1 2 3 4]  [dup *]  map.
+    ( (1 2 3 4)  (dup *)  map )
+</PRE>
+and definitions were just
+<PRE>
+    ( ( square ==  dup * )  enter)
+</PRE>
+<P>
+I leave it here in case some Lisp programmer wants to take it up.
+Note that some words (e.g. "cnos") are not the same as in modern Joy
+(i.e. "swons").
+<P>
+<PRE>
+;; JOY interpreter
+;; A real programmer can write programs in any language, therefore
+;; a real PASCAL programmer can write PASCAL programs in any language
+;;
+(defun joy ()
+
+  (declare (special joystack joyprogram joytable))
+
+  (defun seq (prog stack)
+
+    (defun exe (command stk)
+
+      (defun s1 ()	(first stk))
+      (defun s2 ()	(second stk))
+      (defun s3 ()	(third stk))
+      (defun s4 ()	(fourth stk))
+      (defun s5 ()	(fifth stk))
+      (defun r0 ()	stk)
+      (defun r1 ()	(cdr stk))
+      (defun r2 ()	(cddr stk))
+      (defun r3 ()	(cdddr stk))
+      (defun r4 ()	(cddddr stk))
+      (defun r5 ()	(cddddr (rest stk)))
+
+      (defun i (st p)		(seq p st))
+      (defun b (st p1 p2)	(seq p2 (seq p1 st)))
+
+      (defmacro POP0PUSH1 (v1)	(list 'list* v1 '(r0)))
+      (defmacro POP1PUSH1 (v1)	(list 'list* v1 '(r1)))
+      (defmacro POP2PUSH1 (v1)	(list 'list* v1 '(r2)))
+      (defmacro POP3PUSH1 (v1)	(list 'list* v1 '(r3)))
+      (defmacro POP0PUSH2 (v1 v2) (list 'list* v1 v2 '(r0)))
+      (defmacro POP1PUSH2 (v1 v2) (list 'list* v1 v2 '(r1)))
+      (defmacro POP2PUSH2 (v1 v2) (list 'list* v1 v2 '(r2)))
+      (defmacro POP3PUSH2 (v1 v2) (list 'list* v1 v2 '(r3)))
+
+    ;; begin exe
+    (case command
+
+      (id	(r0))
+      (pop	(r1))
+      (dup	(POP0PUSH1 (s1)))
+      (swap	(POP2PUSH2 (s2) (s1)))
+      (stack	(POP0PUSH1 (r0)))
+      (unstack	(s1))
+      (car	(POP1PUSH1 (car (s1))))
+      (cdr	(POP1PUSH1 (cdr (s1))))
+      (cons	(POP2PUSH1 (cons (s2) (s1))))
+      (uncons	(POP1PUSH2 (cdr (s1)) (car (s1))))
+      (cnos	(POP2PUSH1 (cons (s1) (s2))))
+      (uncnos	(POP1PUSH2 (car (s1)) (cdr (s1))))
+      (duco	(POP1PUSH1 (cons (s1) (s1))))
+      (fix	(POP1PUSH1 (list* (cons 'duco (s1)) 'duco (s1))))
+      (unit	(POP1PUSH1 (list (s1))))
+      (pair	(POP2PUSH1 (list (s2) (s1))))
+      (unpair	(POP1PUSH2 (second (s1)) (first (s1))))
+      (triple	(POP3PUSH1 (list (s3) (s2) (s1))))
+      (untriple	(list* (caddar stk) (cadar stk) (caar stk) (r1)))
+      (+	(POP2PUSH1 (+ (s2) (s1))))
+      (-	(POP2PUSH1 (- (s2) (s1))))
+      (*	(POP2PUSH1 (* (s2) (s1))))
+      (/	(POP2PUSH1 (/ (s2) (s1))))
+      (=	(POP2PUSH1 (= (s2) (s1))))
+      (/=	(POP2PUSH1 (/= (s2) (s1))))
+      (<	(POP2PUSH1 (< (s2) (s1))))
+      (<=	(POP2PUSH1 (<= (s2) (s1))))
+      (>	(POP2PUSH1 (> (s2) (s1))))
+      (>=	(POP2PUSH1 (>= (s2) (s1))))
+      (eq	(POP2PUSH1 (eq (s2) (s1))))
+      (eql	(POP2PUSH1 (eql (s2) (s1))))
+      (equal	(POP2PUSH1 (equal (s2) (s1))))
+;; it ought to be possible to do this:
+;;    ((< <= > >=)
+;;      (POP2PUSH1 ('command (s2) (s1))))
+      (put	(print (s1)) (r1))
+      (get	(POP0PUSH1 (read)))
+
+      (i	(i (r1) (s1)))
+      (b	(b (r2) (s2) (s1)))
+      (k	(b (r1) (list 'pop) (s1)))
+      (w	(b (r1) (list 'dup) (s1)))
+      (c	(b (r1) (list 'swap) (s1)))
+      (y	(b (r0) (list 'fix) (list 'i)))
+      (dip	(list* (s2) (i (r2) (s1))))
+;; this is no go:
+;;      (nullary	(POP1PUSH1 (first (i (r1) (s1)))))
+      ;; in the following the cddr's should be rN - but no go
+      (nullary	(list*	(first (i (r1) (s1)))
+			(cdr stk)))
+      (unary	(list*	(first (i (r1) (s1)))
+			(cddr stk)))
+      (binary	(list*	(first (i (r1) (s1)))
+			(cdddr stk)))
+      (ternary	(list*	(first (i (r1) (s1)))
+			(cddddr stk)))
+      (nullary2	(list*	(first (i (cddr stk) (first stk)))
+			(first (i (cddr stk) (second stk)))
+			(cddr stk)))
+      (unary2	(list*	(first (i (cddr stk) (first stk)))
+			(first (i (cddr stk) (second stk)))
+			(cdddr stk)))
+      (binary2	(list*	(first (i (cddr stk) (first stk)))
+			(first (i (cddr stk) (second stk)))
+			(cddddr stk)))
+
+      (infra	(list*	(i (s2) (s1))
+			(cddr stk)))
+      (build	(POP1PUSH1
+		  (if (null (first stk))
+		    nil
+		    (cons
+		      (first (i (cdr stk)
+				(caar stk)))
+		      (first (i (cons (cdar stk) (cdr stk))
+				(list 'build))))) ))
+;;      (mapcar	(list* (mapcar ?) (cddr stk)))
+;;      (mapcar	(list* (apply ?) (cddr stk)))
+;;      (mapcar	(list* (eval (cons 'mapcar (s1))) (cddr stk)))
+      (map	(POP2PUSH1
+		  (if (null (second stk))
+		    nil
+		    (cons
+		      (first (i (cons (caadr stk) (cddr stk))
+				(car stk)))
+		      (first (i (list* (car stk) (cdadr stk) (cddr stk))
+				(list 'map))))) ))
+      (zip	(POP3PUSH1
+		  (if (or (null (second stk)) (null (third stk)) )
+		    nil
+		    (cons (first (i (list* (caadr stk)
+					   (caaddr stk)
+					   (cdddr stk) )
+				    (car stk)) )
+			  (first (i (list* (car stk)
+					   (cdadr stk)
+					   (cdaddr stk)
+					   (cdddr stk) )
+				    (list 'zip))))) ))
+      (step	(if (null (second stk))
+		  nil
+		  (progn
+		    (i (cons (caadr stk) (cddr stk))
+		       (car stk))
+		    (i (list* (car stk) (cdadr stk) (cddr stk))
+		       (list 'step)) ))
+		(cddr stk))
+      (eval	(eval (s1))  (r1))	; execute in lisp
+      (lookup	(POP1PUSH1 (gethash (s1) joytable)))
+      ;; DEFINITIONS:     (new == old1 old2 ..) enter
+      ;; there is no check for == yet
+      (enter	(setf (gethash (car (s1)) joytable) (cddr (s1)))  (r1))
+      (t	(typecase command
+		  (symbol	(i stk (gethash command joytable)))
+		  (t		(POP0PUSH1 command)) ) ) ) )
+    ;; end exe
+
+  ;; begin seq
+  (cond
+    ((eq prog nil) stack)
+    (t (seq (cdr prog) (exe (car prog) stack)))))
+  ;; end seq
+
+;; begin joy
+(setf joystack 'nil)
+(setf joytable (make-hash-table :test #'equal))
+(terpri)
+(write-string "JOY in LISP    if it doesn't work, (load 'joy) a second time")
+(loop
+  (terpri)
+  (write-string "j: ")
+  (setf joyprogram (read))
+  (if (eql joyprogram 'stop) (return '(JOY STOPPED)))
+  (setf joystack (seq joyprogram joystack)) ) )
+;; end joy
+
+(compile 'joy)
+
+(joy)
+
+;; EOF - JOY interpreter

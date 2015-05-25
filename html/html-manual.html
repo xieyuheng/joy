@@ -1,0 +1,972 @@
+JOY  -  compiled at 16:57:51 on Mar 17 2003 (BDW)
+Copyright 2001 by Manfred von Thun
+<HTML>
+
+<HEAD>
+<TITLE>The Joy Programming Language - By Manfred Von Thun</TITLE>
+<META name="description" content="Joy is a programming language based on the composition of functions and was created by Manfred Von Thun." />
+<META name="keywords" content="joy, joy programming, the joy programming language, la trobe university, manfred, manfred von thun, von thun, john cowan, Joy0, Joy1, Cat, JoyJ, concatenative, concatenative programming language, functional programming, combinators, variable free notation, higher order functions, categories, program = data" />
+</HEAD>
+<DL>
+
+
+literal
+
+
+<DT> truth value type <CODE>      :  </CODE> ->  B
+<DD>The logical type, or the type of truth values.
+It has just two literals: true and false.
+
+
+<DT> character type <CODE>      :  </CODE> ->  C
+<DD>The type of characters. Literals are written with a single quote.
+Examples:  'A  '7  ';  and so on. Unix style escapes are allowed.
+
+
+<DT> integer type <CODE>      :  </CODE> ->  I
+<DD>The type of negative, zero or positive integers.
+Literals are written in decimal notation. Examples:  -123   0   42.
+
+
+<DT> set type <CODE>      :  </CODE> ->  {...}
+<DD>The type of sets of small non-negative integers.
+The maximum is platform dependent, typically the range is 0..31.
+Literals are written inside curly braces.
+Examples:  {}  {0}  {1 3 5}  {19 18 17}.
+
+
+<DT> string type <CODE>      :  </CODE> ->  "..." 
+<DD>The type of strings of characters. Literals are written inside double quotes.
+Examples: ""  "A"  "hello world" "123".
+Unix style escapes are accepted.
+
+
+<DT> list type <CODE>      :  </CODE> ->  [...]
+<DD>The type of lists of values of any type (including lists),
+or the type of quoted programs which may contain operators or combinators.
+Literals of this type are written inside square brackets.
+Examples: []  [3 512 -7]  [john mary]  ['A 'C ['B]]  [dup *].
+
+
+<DT> float type <CODE>      :  </CODE> ->  F
+<DD>The type of floating-point numbers.
+Literals of this type are written with embedded decimal points (like 1.2)
+and optional exponent specifiers (like 1.5E2)
+
+
+<DT> file type <CODE>      :  </CODE> ->  FILE:
+<DD>The type of references to open I/O streams,
+typically but not necessarily files.
+The only literals of this type are stdin, stdout, and stderr.
+
+
+
+operand
+
+
+<DT>false <CODE>      :  </CODE> ->  false
+<DD>Pushes the value false.
+
+
+<DT>true <CODE>      :  </CODE> ->  true
+<DD>Pushes the value true.
+
+
+<DT>maxint <CODE>      :  </CODE> ->  maxint
+<DD>Pushes largest integer (platform dependent). Typically it is 32 bits.
+
+
+<DT>setsize <CODE>      :  </CODE> ->  setsize
+<DD>Pushes the maximum number of elements in a set (platform dependent).
+Typically it is 32, and set members are in the range 0..31.
+
+
+<DT>stack <CODE>      :  </CODE> .. X Y Z  ->  .. X Y Z [Z Y X ..]
+<DD>Pushes the stack as a list.
+
+
+<DT>conts <CODE>      :  </CODE> ->  [[P] [Q] ..]
+<DD>Pushes current continuations. Buggy, do not use.
+
+
+<DT>autoput <CODE>      :  </CODE> ->  I
+<DD>Pushes current value of flag  for automatic output, I = 0..2.
+
+
+<DT>undeferror <CODE>      :  </CODE> ->  I
+<DD>Pushes current value of undefined-is-error flag.
+
+
+<DT>undefs <CODE>      :  </CODE> ->
+<DD>Push a list of all undefined symbols in the current symbol table.
+
+
+<DT>echo <CODE>      :  </CODE> ->  I
+<DD>Pushes value of echo flag, I = 0..3.
+
+
+<DT>clock <CODE>      :  </CODE> ->  I
+<DD>Pushes the integer value of current CPU usage in hundreds of a second.
+
+
+<DT>time <CODE>      :  </CODE> ->  I
+<DD>Pushes the current time (in seconds since the Epoch).
+
+
+<DT>rand <CODE>      :  </CODE>   -> I
+<DD>I is a random integer.
+
+
+<DT>stdin <CODE>      :  </CODE> ->  S
+<DD>Pushes the standard input stream.
+
+
+<DT>stdout <CODE>      :  </CODE> ->  S
+<DD>Pushes the standard output stream.
+
+
+<DT>stderr <CODE>      :  </CODE> ->  S
+<DD>Pushes the standard error stream.
+
+
+
+operator
+
+
+<DT>id <CODE>      :  </CODE> ->
+<DD>Identity function, does nothing.
+Any program of the form  P id Q  is equivalent to just  P Q.
+
+
+<DT>dup <CODE>      :  </CODE>  X  ->   X X
+<DD>Pushes an extra copy of X onto stack.
+
+
+<DT>swap <CODE>      :  </CODE>  X Y  ->   Y X
+<DD>Interchanges X and Y on top of the stack.
+
+
+<DT>rollup <CODE>      :  </CODE> X Y Z  ->  Z X Y
+<DD>Moves X and Y up, moves Z down
+
+
+<DT>rolldown <CODE>      :  </CODE> X Y Z  ->  Y Z X
+<DD>Moves Y and Z down, moves X up
+
+
+<DT>rotate <CODE>      :  </CODE> X Y Z  ->  Z Y X
+<DD>Interchanges X and Z
+
+
+<DT>popd <CODE>      :  </CODE> Y Z  ->  Z
+<DD>As if defined by:   popd  ==  [pop] dip 
+
+
+<DT>dupd <CODE>      :  </CODE> Y Z  ->  Y Y Z
+<DD>As if defined by:   dupd  ==  [dup] dip
+
+
+<DT>swapd <CODE>      :  </CODE> X Y Z  ->  Y X Z
+<DD>As if defined by:   swapd  ==  [swap] dip
+
+
+<DT>rollupd <CODE>      :  </CODE> X Y Z W  ->  Z X Y W
+<DD>As if defined by:   rollupd  ==  [rollup] dip
+
+
+<DT>rolldownd <CODE>      :  </CODE> X Y Z W  ->  Y Z X W
+<DD>As if defined by:   rolldownd  ==  [rolldown] dip 
+
+
+<DT>rotated <CODE>      :  </CODE> X Y Z W  ->  Z Y X W
+<DD>As if defined by:   rotated  ==  [rotate] dip
+
+
+<DT>pop <CODE>      :  </CODE>  X  ->
+<DD>Removes X from top of the stack.
+
+
+<DT>choice <CODE>      :  </CODE> B T F  ->  X
+<DD>If B is true, then X = T else X = F.
+
+
+<DT>or <CODE>      :  </CODE> X Y  ->  Z
+<DD>Z is the union of sets X and Y, logical disjunction for truth values.
+
+
+<DT>xor <CODE>      :  </CODE> X Y  ->  Z
+<DD>Z is the symmetric difference of sets X and Y,
+logical exclusive disjunction for truth values.
+
+
+<DT>and <CODE>      :  </CODE> X Y  ->  Z
+<DD>Z is the intersection of sets X and Y, logical conjunction for truth values.
+
+
+<DT>not <CODE>      :  </CODE> X  ->  Y
+<DD>Y is the complement of set X, logical negation for truth values.
+
+
+<DT>+ <CODE>      :  </CODE> M I  ->  N
+<DD>Numeric N is the result of adding integer I to numeric M.
+Also supports float.
+
+
+<DT>- <CODE>      :  </CODE> M I  ->  N
+<DD>Numeric N is the result of subtracting integer I from numeric M.
+Also supports float.
+
+
+<DT>* <CODE>      :  </CODE> I J  ->  K
+<DD>Integer K is the product of integers I and J.  Also supports float.
+
+
+<DT>/ <CODE>      :  </CODE> I J  ->  K
+<DD>Integer K is the (rounded) ratio of integers I and J.  Also supports float.
+
+
+<DT>rem <CODE>      :  </CODE> I J  ->  K
+<DD>Integer K is the remainder of dividing I by J.  Also supports float.
+
+
+<DT>div <CODE>      :  </CODE> I J  ->  K L
+<DD>Integers K and L are the quotient and remainder of dividing I by J.
+
+
+<DT>sign <CODE>      :  </CODE> N1  ->  N2
+<DD>Integer N2 is the sign (-1 or 0 or +1) of integer N1,
+or float N2 is the sign (-1.0 or 0.0 or 1.0) of float N1.
+
+
+<DT>neg <CODE>      :  </CODE> I  ->  J
+<DD>Integer J is the negative of integer I.  Also supports float.
+
+
+<DT>ord <CODE>      :  </CODE> C  ->  I
+<DD>Integer I is the Ascii value of character C (or logical or integer).
+
+
+<DT>chr <CODE>      :  </CODE> I  ->  C
+<DD>C is the character whose Ascii value is integer I (or logical or character).
+
+
+<DT>abs <CODE>      :  </CODE> N1  ->  N2
+<DD>Integer N2 is the absolute value (0,1,2..) of integer N1,
+or float N2 is the absolute value (0.0 ..) of float N1
+
+
+<DT>acos <CODE>      :  </CODE> F  ->  G
+<DD>G is the arc cosine of F.
+
+
+<DT>asin <CODE>      :  </CODE> F  ->  G
+<DD>G is the arc sine of F.
+
+
+<DT>atan <CODE>      :  </CODE> F  ->  G
+<DD>G is the arc tangent of F.
+
+
+<DT>atan2 <CODE>      :  </CODE> F G  ->  H
+<DD>H is the arc tangent of F / G.
+
+
+<DT>ceil <CODE>      :  </CODE> F  ->  G
+<DD>G is the float ceiling of F.
+
+
+<DT>cos <CODE>      :  </CODE> F  ->  G
+<DD>G is the cosine of F.
+
+
+<DT>cosh <CODE>      :  </CODE> F  ->  G
+<DD>G is the hyperbolic cosine of F.
+
+
+<DT>exp <CODE>      :  </CODE> F  ->  G
+<DD>G is e (2.718281828...) raised to the Fth power.
+
+
+<DT>floor <CODE>      :  </CODE> F  ->  G
+<DD>G is the floor of F.
+
+
+<DT>frexp <CODE>      :  </CODE> F  ->  G I
+<DD>G is the mantissa and I is the exponent of F.
+Unless F = 0, 0.5 <= abs(G) < 1.0.
+
+
+<DT>ldexp <CODE>      :  </CODE> F I  -> G
+<DD>G is F times 2 to the Ith power.
+
+
+<DT>log <CODE>      :  </CODE> F  ->  G
+<DD>G is the natural logarithm of F.
+
+
+<DT>log10 <CODE>      :  </CODE> F  ->  G
+<DD>G is the common logarithm of F.
+
+
+<DT>modf <CODE>      :  </CODE> F  ->  G H
+<DD>G is the fractional part and H is the integer part
+(but expressed as a float) of F.
+
+
+<DT>pow <CODE>      :  </CODE> F G  ->  H
+<DD>H is F raised to the Gth power.
+
+
+<DT>sin <CODE>      :  </CODE> F  ->  G
+<DD>G is the sine of F.
+
+
+<DT>sinh <CODE>      :  </CODE> F  ->  G
+<DD>G is the hyperbolic sine of F.
+
+
+<DT>sqrt <CODE>      :  </CODE> F  ->  G
+<DD>G is the square root of F.
+
+
+<DT>tan <CODE>      :  </CODE> F  ->  G
+<DD>G is the tangent of F.
+
+
+<DT>tanh <CODE>      :  </CODE> F  ->  G
+<DD>G is the hyperbolic tangent of F.
+
+
+<DT>trunc <CODE>      :  </CODE> F  ->  I
+<DD>I is an integer equal to the float F truncated toward zero.
+
+
+<DT>localtime <CODE>      :  </CODE> I  ->  T
+<DD>Converts a time I into a list T representing local time:
+[year month day hour minute second isdst yearday weekday].
+Month is 1 = January ... 12 = December;
+isdst is a Boolean flagging daylight savings/summer time;
+weekday is 0 = Monday ... 7 = Sunday.
+
+
+<DT>gmtime <CODE>      :  </CODE> I  ->  T
+<DD>Converts a time I into a list T representing universal time:
+[year month day hour minute second isdst yearday weekday].
+Month is 1 = January ... 12 = December;
+isdst is false; weekday is 0 = Monday ... 7 = Sunday.
+
+
+<DT>mktime <CODE>      :  </CODE> T  ->  I
+<DD>Converts a list T representing local time into a time I.
+T is in the format generated by localtime.
+
+
+<DT>strftime <CODE>      :  </CODE> T S1  ->  S2
+<DD>Formats a list T in the format of localtime or gmtime
+using string S1 and pushes the result S2.
+
+
+<DT>strtol <CODE>      :  </CODE> S I  ->  J
+<DD>String S is converted to the integer J using base I.
+If I = 0, assumes base 10,
+but leading "0" means base 8 and leading "0x" means base 16.
+
+
+<DT>strtod <CODE>      :  </CODE> S  ->  R
+<DD>String S is converted to the float R.
+
+
+<DT>format <CODE>      :  </CODE> N C I J  ->  S
+<DD>S is the formatted version of N in mode C
+('d or 'i = decimal, 'o = octal, 'x or
+'X = hex with lower or upper case letters)
+with maximum width I and minimum width J.
+
+
+<DT>formatf <CODE>      :  </CODE> F C I J  ->  S
+<DD>S is the formatted version of F in mode C
+('e or 'E = exponential, 'f = fractional,
+'g or G = general with lower or upper case letters)
+with maximum width I and precision J.
+
+
+<DT>srand <CODE>      :  </CODE> I  ->  
+<DD>Sets the random integer seed to integer I.
+
+
+<DT>pred <CODE>      :  </CODE> M  ->  N
+<DD>Numeric N is the predecessor of numeric M.
+
+
+<DT>succ <CODE>      :  </CODE> M  ->  N
+<DD>Numeric N is the successor of numeric M.
+
+
+<DT>max <CODE>      :  </CODE> N1 N2  ->  N
+<DD>N is the maximum of numeric values N1 and N2.  Also supports float.
+
+
+<DT>min <CODE>      :  </CODE> N1 N2  ->  N
+<DD>N is the minimum of numeric values N1 and N2.  Also supports float.
+
+
+<DT>fclose <CODE>      :  </CODE> S  ->  
+<DD>Stream S is closed and removed from the stack.
+
+
+<DT>feof <CODE>      :  </CODE> S  ->  S B
+<DD>B is the end-of-file status of stream S.
+
+
+<DT>ferror <CODE>      :  </CODE> S  ->  S B
+<DD>B is the error status of stream S.
+
+
+<DT>fflush <CODE>      :  </CODE> S  ->  S
+<DD>Flush stream S, forcing all buffered output to be written.
+
+
+<DT>fgetch <CODE>      :  </CODE> S  ->  S C
+<DD>C is the next available character from stream S.
+
+
+<DT>fgets <CODE>      :  </CODE> S  ->  S L
+<DD>L is the next available line (as a string) from stream S.
+
+
+<DT>fopen <CODE>      :  </CODE> P M  ->  S
+<DD>The file system object with pathname P is opened with mode M (r, w, a, etc.)
+and stream object S is pushed; if the open fails, file:NULL is pushed.
+
+
+<DT>fread <CODE>      :  </CODE> S I  ->  S L
+<DD>I bytes are read from the current position of stream S
+and returned as a list of I integers.
+
+
+<DT>fwrite <CODE>      :  </CODE> S L  ->  S
+<DD>A list of integers are written as bytes to the current position of stream S.
+
+
+<DT>fremove <CODE>      :  </CODE> P  ->  B
+<DD>The file system object with pathname P is removed from the file system.
+ is a boolean indicating success or failure.
+
+
+<DT>frename <CODE>      :  </CODE> P1 P2  ->  B
+<DD>The file system object with pathname P1 is renamed to P2.
+B is a boolean indicating success or failure.
+
+
+<DT>fput <CODE>      :  </CODE> S X  ->  S
+<DD>Writes X to stream S, pops X off stack.
+
+
+<DT>fputch <CODE>      :  </CODE> S C  ->  S
+<DD>The character C is written to the current position of stream S.
+
+
+<DT>fputchars <CODE>      :  </CODE> S "abc.."  ->  S
+<DD>The string abc.. (no quotes) is written to the current position of stream S.
+
+
+<DT>fputstring <CODE>      :  </CODE> S "abc.."  ->  S
+<DD>== fputchars, as a temporary alternative.
+
+
+<DT>fseek <CODE>      :  </CODE> S P W  ->  S
+<DD>Stream S is repositioned to position P relative to whence-point W,
+where W = 0, 1, 2 for beginning, current position, end respectively.
+
+
+<DT>ftell <CODE>      :  </CODE> S  ->  S I
+<DD>I is the current position of stream S.
+
+
+<DT>unstack <CODE>      :  </CODE> [X Y ..]  ->  ..Y X
+<DD>The list [X Y ..] becomes the new stack.
+
+
+<DT>cons <CODE>      :  </CODE> X A  ->  B
+<DD>Aggregate B is A with a new member X (first member for sequences).
+
+
+<DT>swons <CODE>      :  </CODE> A X  ->  B
+<DD>Aggregate B is A with a new member X (first member for sequences).
+
+
+<DT>first <CODE>      :  </CODE> A  ->  F
+<DD>F is the first member of the non-empty aggregate A.
+
+
+<DT>rest <CODE>      :  </CODE> A  ->  R
+<DD>R is the non-empty aggregate A with its first member removed.
+
+
+<DT>compare <CODE>      :  </CODE> A B  ->  I
+<DD>I (=-1,0,+1) is the comparison of aggregates A and B.
+The values correspond to the predicates <=, =, >=.
+
+
+<DT>at <CODE>      :  </CODE> A I  ->  X
+<DD>X (= A[I]) is the member of A at position I.
+
+
+<DT>of <CODE>      :  </CODE> I A  ->  X
+<DD>X (= A[I]) is the I-th member of aggregate A.
+
+
+<DT>size <CODE>      :  </CODE> A  ->  I
+<DD>Integer I is the number of elements of aggregate A.
+
+
+<DT>opcase <CODE>      :  </CODE> X [..[X Xs]..]  ->  [Xs]
+<DD>Indexing on type of X, returns the list [Xs].
+
+
+<DT>case <CODE>      :  </CODE> X [..[X Y]..]  ->  Y i
+<DD>Indexing on the value of X, execute the matching Y.
+
+
+<DT>uncons <CODE>      :  </CODE> A  ->  F R
+<DD>F and R are the first and the rest of non-empty aggregate A.
+
+
+<DT>unswons <CODE>      :  </CODE> A  ->  R F
+<DD>R and F are the rest and the first of non-empty aggregate A.
+
+
+<DT>drop <CODE>      :  </CODE> A N  ->  B
+<DD>Aggregate B is the result of deleting the first N elements of A.
+
+
+<DT>take <CODE>      :  </CODE> A N  ->  B
+<DD>Aggregate B is the result of retaining just the first N elements of A.
+
+
+<DT>concat <CODE>      :  </CODE> S T  ->  U
+<DD>Sequence U is the concatenation of sequences S and T.
+
+
+<DT>enconcat <CODE>      :  </CODE> X S T  ->  U
+<DD>Sequence U is the concatenation of sequences S and T
+with X inserted between S and T (== swapd cons concat)
+
+
+<DT>name <CODE>      :  </CODE> sym  ->  "sym"
+<DD>For operators and combinators, the string "sym" is the name of item sym,
+for literals sym the result string is its type.
+
+
+<DT>intern <CODE>      :  </CODE> "sym"  -> sym
+<DD>Pushes the item whose name is "sym".
+
+
+<DT>body <CODE>      :  </CODE> U  ->  [P]
+<DD>Quotation [P] is the body of user-defined symbol U.
+
+
+
+predicate
+
+
+<DT>null <CODE>      :  </CODE> X  ->  B
+<DD>Tests for empty aggregate X or zero numeric.
+
+
+<DT>small <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether aggregate X has 0 or 1 members, or numeric 0 or 1.
+
+
+<DT>>= <CODE>      :  </CODE> X Y  ->  B
+<DD>Either both X and Y are numeric or both are strings or symbols.
+Tests whether X greater than or equal to Y.  Also supports float.
+
+
+<DT>> <CODE>      :  </CODE> X Y  ->  B
+<DD>Either both X and Y are numeric or both are strings or symbols.
+Tests whether X greater than Y.  Also supports float.
+
+
+<DT>&lt;= <CODE>      :  </CODE> X Y  ->  B
+<DD>Either both X and Y are numeric or both are strings or symbols.
+Tests whether X less than or equal to Y.  Also supports float.
+
+
+<DT>< <CODE>      :  </CODE> X Y  ->  B
+<DD>Either both X and Y are numeric or both are strings or symbols.
+Tests whether X less than Y.  Also supports float.
+
+
+<DT>!= <CODE>      :  </CODE> X Y  ->  B
+<DD>Either both X and Y are numeric or both are strings or symbols.
+Tests whether X not equal to Y.  Also supports float.
+
+
+<DT>= <CODE>      :  </CODE> X Y  ->  B
+<DD>Either both X and Y are numeric or both are strings or symbols.
+Tests whether X equal to Y.  Also supports float.
+
+
+<DT>equal <CODE>      :  </CODE> T U  ->  B
+<DD>(Recursively) tests whether trees T and U are identical.
+
+
+<DT>has <CODE>      :  </CODE> A X  ->  B
+<DD>Tests whether aggregate A has X as a member.
+
+
+<DT>in <CODE>      :  </CODE> X A  ->  B
+<DD>Tests whether X is a member of aggregate A.
+
+
+<DT>integer <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether X is an integer.
+
+
+<DT>char <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether X is a character.
+
+
+<DT>logical <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether X is a logical.
+
+
+<DT>set <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether X is a set.
+
+
+<DT>string <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether X is a string.
+
+
+<DT>list <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether X is a list.
+
+
+<DT>leaf <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether X is not a list.
+
+
+<DT>user <CODE>      :  </CODE> X  ->  B
+<DD>Tests whether X is a user-defined symbol.
+
+
+<DT>float <CODE>      :  </CODE> R  ->  B
+<DD>Tests whether R is a float.
+
+
+<DT>file <CODE>      :  </CODE> F  ->  B
+<DD>Tests whether F is a file.
+
+
+
+combinator
+
+
+<DT>i <CODE>      :  </CODE> [P]  ->  ...
+<DD>Executes P. So, [P] i  ==  P.
+
+
+<DT>x <CODE>      :  </CODE> [P]i  ->  ...
+<DD>Executes P without popping [P]. So, [P] x  ==  [P] P.
+
+
+<DT>dip <CODE>      :  </CODE> X [P]  ->  ... X
+<DD>Saves X, executes P, pushes X back.
+
+
+<DT>app1 <CODE>      :  </CODE> X [P]  ->  R
+<DD>Executes P, pushes result R on stack without X.
+
+
+<DT>app11 <CODE>      :  </CODE> X Y [P]  ->  R
+<DD>Executes P, pushes result R on stack.
+
+
+<DT>app12 <CODE>      :  </CODE> X Y1 Y2 [P]  ->  R1 R2
+<DD>Executes P twice, with Y1 and Y2, returns R1 and R2.
+
+
+<DT>construct <CODE>      :  </CODE> [P] [[P1] [P2] ..]  ->  R1 R2 ..
+<DD>Saves state of stack and then executes [P].
+Then executes each [Pi] to give Ri pushed onto saved stack.
+
+
+<DT>nullary <CODE>      :  </CODE> [P]  ->  R
+<DD>Executes P, which leaves R on top of the stack.
+No matter how many parameters this consumes, none are removed from the stack.
+
+
+<DT>unary <CODE>      :  </CODE> X [P]  ->  R
+<DD>Executes P, which leaves R on top of the stack.
+No matter how many parameters this consumes,
+exactly one is removed from the stack.
+
+
+<DT>unary2 <CODE>      :  </CODE> X1 X2 [P]  ->  R1 R2
+<DD>Executes P twice, with X1 and X2 on top of the stack.
+Returns the two values R1 and R2.
+
+
+<DT>unary3 <CODE>      :  </CODE> X1 X2 X3 [P]  ->  R1 R2 R3
+<DD>Executes P three times, with Xi, returns Ri (i = 1..3).
+
+
+<DT>unary4 <CODE>      :  </CODE> X1 X2 X3 X4 [P]  ->  R1 R2 R3 R4
+<DD>Executes P four times, with Xi, returns Ri (i = 1..4).
+
+
+<DT>app2 <CODE>      :  </CODE> X1 X2 [P]  ->  R1 R2
+<DD>Obsolescent.  == unary2
+
+
+<DT>app3 <CODE>      :  </CODE> X1 X2 X3 [P]  ->  R1 R2 R3
+<DD>Obsolescent.  == unary3
+
+
+<DT>app4 <CODE>      :  </CODE> X1 X2 X3 X4 [P]  ->  R1 R2 R3 R4
+<DD>Obsolescent.  == unary4
+
+
+<DT>binary <CODE>      :  </CODE> X Y [P]  ->  R
+<DD>Executes P, which leaves R on top of the stack.
+No matter how many parameters this consumes,
+exactly two are removed from the stack.
+
+
+<DT>ternary <CODE>      :  </CODE> X Y Z [P]  ->  R
+<DD>Executes P, which leaves R on top of the stack.
+No matter how many parameters this consumes,
+exactly three are removed from the stack.
+
+
+<DT>cleave <CODE>      :  </CODE> X [P1] [P2]  ->  R1 R2
+<DD>Executes P1 and P2, each with X on top, producing two results.
+
+
+<DT>branch <CODE>      :  </CODE> B [T] [F]  ->  ...
+<DD>If B is true, then executes T else executes F.
+
+
+<DT>ifte <CODE>      :  </CODE> [B] [T] [F]  ->  ...
+<DD>Executes B. If that yields true, then executes T else executes F.
+
+
+<DT>ifinteger <CODE>      :  </CODE> X [T] [E]  ->  ...
+<DD>If X is an integer, executes T else executes E.
+
+
+<DT>ifchar <CODE>      :  </CODE> X [T] [E]  ->  ...
+<DD>If X is a character, executes T else executes E.
+
+
+<DT>iflogical <CODE>      :  </CODE> X [T] [E]  ->  ...
+<DD>If X is a logical or truth value, executes T else executes E.
+
+
+<DT>ifset <CODE>      :  </CODE> X [T] [E]  ->  ...
+<DD>If X is a set, executes T else executes E.
+
+
+<DT>ifstring <CODE>      :  </CODE> X [T] [E]  ->  ...
+<DD>If X is a string, executes T else executes E.
+
+
+<DT>iflist <CODE>      :  </CODE> X [T] [E]  ->  ...
+<DD>If X is a list, executes T else executes E.
+
+
+<DT>iffloat <CODE>      :  </CODE> X [T] [E]  ->  ...
+<DD>If X is a float, executes T else executes E.
+
+
+<DT>iffile <CODE>      :  </CODE> X [T] [E]  ->  ...
+<DD>If X is a file, executes T else executes E.
+
+
+<DT>cond <CODE>      :  </CODE> [..[[Bi] Ti]..[D]]  ->  ...
+<DD>Tries each Bi. If that yields true, then executes Ti and exits.
+If no Bi yields true, executes default D.
+
+
+<DT>while <CODE>      :  </CODE> [B] [D]  ->  ...
+<DD>While executing B yields true executes D.
+
+
+<DT>linrec <CODE>      :  </CODE> [P] [T] [R1] [R2]  ->  ...
+<DD>Executes P. If that yields true, executes T.
+Else executes R1, recurses, executes R2.
+
+
+<DT>tailrec <CODE>      :  </CODE> [P] [T] [R1]  ->  ...
+<DD>Executes P. If that yields true, executes T.
+Else executes R1, recurses.
+
+
+<DT>binrec <CODE>      :  </CODE> [B] [T] [R1] [R2]  ->  ...
+<DD>Executes P. If that yields true, executes T.
+Else uses R1 to produce two intermediates, recurses on both,
+then executes R2 to combines their results.
+
+
+<DT>genrec <CODE>      :  </CODE> [B] [T] [R1] [R2]  ->  ...
+<DD>Executes B, if that yields true executes T.
+Else executes R1 and then [[B] [T] [R1] [R2] genrec] R2.
+
+
+<DT>condlinrec <CODE>      :  </CODE> [ [C1] [C2] .. [D] ]  ->  ...
+<DD>Each [Ci] is of the forms [[B] [T]] or [[B] [R1] [R2]].
+Tries each B. If that yields true and there is just a [T], executes T and exit.
+If there are [R1] and [R2], executes R1, recurses, executes R2.
+Subsequent case are ignored. If no B yields true, then [D] is used.
+It is then of the forms [[T]] or [[R1] [R2]]. For the former, executes T.
+For the latter executes R1, recurses, executes R2.
+
+
+<DT>step <CODE>      :  </CODE> A  [P]  ->  ...
+<DD>Sequentially putting members of aggregate A onto stack,
+executes P for each member of A.
+
+
+<DT>fold <CODE>      :  </CODE> A V0 [P]  ->  V
+<DD>Starting with value V0, sequentially pushes members of aggregate A
+and combines with binary operator P to produce value V.
+
+
+<DT>map <CODE>      :  </CODE> A [P]  ->  B
+<DD>Executes P on each member of aggregate A,
+collects results in sametype aggregate B.
+
+
+<DT>times <CODE>      :  </CODE> N [P]  ->  ...
+<DD>N times executes P.
+
+
+<DT>infra <CODE>      :  </CODE> L1 [P]  ->  L2
+<DD>Using list L1 as stack, executes P and returns a new list L2.
+The first element of L1 is used as the top of stack,
+and after execution of P the top of stack becomes the first element of L2.
+
+
+<DT>primrec <CODE>      :  </CODE> X [I] [C]  ->  R
+<DD>Executes I to obtain an initial value R0.
+For integer X uses increasing positive integers to X, combines by C for new R.
+For aggregate X uses successive members and combines by C for new R.
+
+
+<DT>filter <CODE>      :  </CODE> A [B]  ->  A1
+<DD>Uses test B to filter aggregate A producing sametype aggregate A1.
+
+
+<DT>split <CODE>      :  </CODE> A [B]  ->  A1 A2
+<DD>Uses test B to split aggregate A into sametype aggregates A1 and A2 .
+
+
+<DT>some <CODE>      :  </CODE> A  [B]  ->  X
+<DD>Applies test B to members of aggregate A, X = true if some pass.
+
+
+<DT>all <CODE>      :  </CODE> A [B]  ->  X
+<DD>Applies test B to members of aggregate A, X = true if all pass.
+
+
+<DT>treestep <CODE>      :  </CODE> T [P]  ->  ...
+<DD>Recursively traverses leaves of tree T, executes P for each leaf.
+
+
+<DT>treerec <CODE>      :  </CODE> T [O] [C]  ->  ...
+<DD>T is a tree. If T is a leaf, executes O. Else executes [[O] [C] treerec] C.
+
+
+<DT>treegenrec <CODE>      :  </CODE> T [O1] [O2] [C]  ->  ...
+<DD>T is a tree. If T is a leaf, executes O1.
+Else executes O2 and then [[O1] [O2] [C] treegenrec] C.
+
+
+
+miscellaneous commands
+
+
+<DT>help <CODE>      :  </CODE> ->
+<DD>Lists all defined symbols, including those from library files.
+Then lists all primitives of raw Joy
+(There is a variant: "_help" which lists hidden symbols).
+
+
+<DT>helpdetail <CODE>      :  </CODE> [ S1  S2  .. ]
+<DD>Gives brief help on each symbol S in the list.
+
+
+<DT>manual <CODE>      :  </CODE> ->
+<DD>Writes this manual of all Joy primitives to output file.
+
+
+<DT>setautoput <CODE>      :  </CODE> I  ->
+<DD>Sets value of flag for automatic put to I (if I = 0, none;
+if I = 1, put; if I = 2, stack.
+
+
+<DT>setundeferror <CODE>      :  </CODE> I  ->
+<DD>Sets flag that controls behavior of undefined functions
+(0 = no error, 1 = error).
+
+
+<DT>setecho <CODE>      :  </CODE> I ->
+<DD>Sets value of echo flag for listing.
+I = 0: no echo, 1: echo, 2: with tab, 3: and linenumber.
+
+
+<DT>gc <CODE>      :  </CODE> ->
+<DD>Initiates garbage collection.
+
+
+<DT>system <CODE>      :  </CODE> "command"  ->
+<DD>Escapes to shell, executes string "command".
+The string may cause execution of another program.
+When that has finished, the process returns to Joy.
+
+
+<DT>getenv <CODE>      :  </CODE> "variable"  ->  "value"
+<DD>Retrieves the value of the environment variable "variable".
+
+
+<DT>argv <CODE>      :  </CODE> -> A
+<DD>Creates an aggregate A containing the interpreter's command line arguments.
+
+
+<DT>argc <CODE>      :  </CODE> -> I
+<DD>Pushes the number of command line arguments. This is quivalent to 'argv size'.
+
+
+<DT>get <CODE>      :  </CODE> ->  F
+<DD>Reads a factor from input and pushes it onto stack.
+
+
+<DT>put <CODE>      :  </CODE> X  ->
+<DD>Writes X to output, pops X off stack.
+
+
+<DT>putch <CODE>      :  </CODE> N  ->
+<DD>N : numeric, writes character whose ASCII is N.
+
+
+<DT>putchars <CODE>      :  </CODE> "abc.."  ->
+<DD>Writes  abc.. (without quotes)
+
+
+<DT>include <CODE>      :  </CODE> "filnam.ext"  ->
+<DD>Transfers input to file whose name is "filnam.ext".
+On end-of-file returns to previous input file.
+
+
+<DT>abort <CODE>      :  </CODE> ->
+<DD>Aborts execution of current Joy program, returns to Joy main cycle.
+
+
+<DT>quit <CODE>      :  </CODE> ->
+<DD>Exit from Joy.
+
+
+</DL>
+</HTML>

@@ -1,0 +1,147 @@
+<HTML>
+<TITLE> PicoJoy  -  a tiniest Joy-in-Prolog  </TITLE>
+<P>
+   I call this thing  PicoJoy  because it is a cut-down version
+of what I used to call  MicroJoy . Any experienced Prolog writer
+should be able to extend it. It runs under MU-Prolog (from Melbourne
+University), and probably under any other standard Prolog.
+<P>
+<PRE>
+/* file: picojoy.pl                  A tiniest Joy-in-Prolog */
+
+/* Run Prolog, then  "consult('picojoy.pl')."  this file.
+   To enter the picojoy loop, type  "picojoy."  .
+   After the prompt, enter Joy programs
+    1)  items separated by commas
+    2)  program inside square bracket
+    3)  program terminated by a period.
+   All this is inconvenient; it is necessary because picojoy
+   simply uses the prolog read/1 and write/1.
+   Two Examples:   [3, 5, +].    [ [2,3,4], [dup,+], map ].
+   or Definition:     [ foo, ==, bar, baz, zonk ].
+   Output is the whole stack.
+   To exit the loop, after the prompt type  stop. (no brackets).
+   Now you are back in prolog. Typically  end.  or  EOF  exits.
+*/
+					/* "outer interpreter" */
+picojoy :-
+	write('picojoy version 00.00') ,
+	repeat,
+	nl,
+	write('j: ') ,
+	read(P) ,
+	(	P == stop, !
+	;
+		P = [ HEAD,(==)|BODY ],
+		asserta((
+		    exe(HEAD,(X,Y)) :-
+			 exelist(BODY,(X,Y)) )),
+		fail
+	;
+		exelist(P , ([], Y)) ,
+		write(Y),
+		fail
+	) .
+					/* "inner interpreter" */
+exelist([] , (X, X)) .
+exelist(R1.R , (X, Z)) :-
+	exe(R1 , (X, Y)) ,
+	exelist(R , (Y, Z)) .
+
+					/* literals */
+exe(true , (S, true.S)) .
+exe(false , (S, false.S)) .
+exe([] , (S, [].S)) .
+exe(L1.L , (S, (L1.L).S)) .
+exe(I , (S, I.S)) :-
+	integer(I) .
+					/* operators */
+exe(stack , (S, S.S)) .
+exe(unstack , (L.S, L)) .
+exe(pop , (S1.S, S)) .
+exe(dup , (S1.S, S1.S1.S)) .
+exe(swap , (S1.S2.S, S2.S1.S)) .
+exe(cons , (L.L1.S, (L1.L).S)) .
+exe(null , ([].S, true.S)) :-
+	! .
+exe(null , (X.S, false.S)) .
+exe(uncons , ((L1.L).S, L.L1.S)) .
+exe(unit , (S1.S, (S1.[]).S)) .
+exe(pair , (S1.S2.S, (S2.S1.[]).S)) .
+exe(unpair , ((L1.L2.L).S, L2.L1.S)) .
+exe(concat , (L.[].S, L.S)) .
+exe(concat , (L.(M1.M).S, (M1.N).S)) :-
+	exe(concat , (L.M.S, N.S)) .
+exe(shunt , (L.[].S, L.S)) .
+exe(shunt , (L.(M1.M).S, N.S)) :-
+	exe(shunt , ((M1.L).M.S, N.S)) .
+exe(reverse , (L.S, M.S)) :-
+	exe(shunt , ([].L.S, M.S)) .
+exe(size , ([].S, 0.S)) .
+exe(size , ((L1.L).S, N.S)) :-
+	exe(size , (L.S, N1.S)) ,
+	N is N1 + 1 .
+exe(+ , (X.Y.S, Z.S)) :-
+	Z is Y + X .
+exe(= , (X.Y.S, true.S)) :-
+	Y = X .
+exe(= , (X.Y.S, false.S)) :-
+	not (Y = X) .
+exe(< , (X.Y.S, true.S)) :-
+	Y < X .
+exe(< , (X.Y.S, false.S)) :-
+	not (Y < X) .
+exe(first , ((L1.L).S, L1.S)) .
+exe(second , ((L1.L2.L).S, L2.S)) .
+exe(rest , ((L1.L).S, L.S)) .
+					/* combinators */
+exe(i , (P.S, T)) :-
+	exelist(P , (S, T)) .
+exe(dip , (P.S1.S, S1.T)) :-
+	exelist(P , (S, T)) .
+exe(nullary , (P.S, X.S)) :-
+	exelist(P , (S, X.T)) .
+exe(map , (P.[].S, [].S)) .
+exe(map , (P.(L1.L).S, (M1.M).S)) :-
+	exelist(P , (L1.S, M1.T)) ,
+	exe(map , (P.L.S, M.U)) .
+exe(step , (P.[].S, S)) .
+exe(step , (P.(L1.L).S, U)) :-
+	exelist(P , (L1.S, T)) ,
+	exe(step , (P.L.T, U)) .
+exe(sieve , (TEST.[].S, [].[].S)) .
+exe(sieve , (TEST.(L1.L).S, N.(L1.M).S)) :-
+	exelist(TEST , (L1.S, true.T)) ,
+	!,
+	exe(sieve , (TEST.L.S, N.M.S)) .
+exe(sieve , (TEST.(L1.L).S, (L1.N).M.S)) :-
+	exe(sieve , (TEST.L.S, N.M.S)) .
+exe(filter , (TEST.[].S, [].S)) .
+exe(filter , (TEST.(L1.L).S, (L1.M).S)) :-
+	exelist(TEST , (L1.S, true.T)) ,
+	!,
+	exe(filter , (TEST.L.S, M.S)) .
+exe(filter , (TEST.(L1.L).S, M.S)) :-
+	exe(filter , (TEST.L.S, M.S)) .
+exe(infra , (P.L.S, M.S)) :-
+	exelist(P , (L, M)) .
+exe(ifte , (ELSEPART.THENPART.IFPART.S, T)) :-
+	exelist(IFPART , (S, true.U)) ,
+	!,
+	exelist(THENPART , (S, T)) .
+exe(ifte , (ELSEPART.THENPART.IFPART.S, T)) :-
+	exelist(ELSEPART , (S, T)) .
+exe(linrec , (REC2.REC1.EXIT.IF.S, T)) :-
+	exelist(IF , (S, true.U)) ,
+	!,
+	exelist(EXIT , (S, T)) .
+exe(linrec , (REC2.REC1.EXIT.IF.S, T)) :-
+	exelist(REC1 , (S, U)) ,
+	exe(linrec , (REC2.REC1.EXIT.IF.U, V)) ,
+	exelist(REC2 , (V, T)) .
+
+exe(listing, (S,S)) :- listing.
+
+/* end of file picojoy.pl */
+</PRE>
+</HTML>

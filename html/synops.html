@@ -1,0 +1,36 @@
+<HTML>
+<HEAD>
+<TITLE>Synopsis of the Language JOY</TITLE>
+</HEAD>
+<BODY>
+<P>
+The language Joy is a purely functional programming language.
+Whereas all other functional programming languages are based
+on the application of functions to arguments,
+Joy is based on the composition of functions.
+All such functions take a stack as argument and produce
+a stack as value.
+Consequently much of Joy looks like ordinary postfix notation.
+However, in Joy a function can consume any number of
+parameters from the stack and leave any number of results on the stack.
+The concatenation of appropriate programs denotes
+the composition of the functions which the programs denote.
+One of the datatypes of Joy is that of quoted programs,
+of which lists are a special case.
+Some functions expect quoted programs on top of the stack
+and execute them in many different ways, effectively by dequoting.
+So, where other functional languages use abstraction and application,
+Joy uses quotation and combinators -- functions which perform dequotation.
+As a result, there are no named formal parameters,
+no substitution of actual for formal parameters,
+and no environment of name-value pairs.
+Combinators in Joy
+behave much like functionals or higher order functions in other languages,
+they minimise the need for recursive and non-recursive definitions.
+Because there is no need for an environment,
+Joy has an exceptionally simple algebra,
+and its programs are easily manipulated by hand and by other programs.
+Many programs first construct another program which is then
+executed.
+</BODY>
+</HTML>
