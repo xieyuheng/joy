@@ -1,8 +1,10 @@
 .ONESHELL:
 
-all:
-	make -f make.nogc &&\
+joy:
 	make -f make.gc
+
+joy-no-gc:
+	make -f make.nogc
 
 clean:
 	rm -f joy

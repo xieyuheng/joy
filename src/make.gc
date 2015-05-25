@@ -12,4 +12,4 @@ joy:		$(OBJS)  gc/gc.a
 $(OBJS):	$(HDRS)
 
 gc/gc.a:
-		cd gc; $(MAKE)
+		cd gc; ./autogen.sh ; ./configure ; $(MAKE)
