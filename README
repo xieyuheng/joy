@@ -1,4 +1,8 @@
+-----------------------------------
+
 backup of the joy programming language
+
+-----------------------------------
 
 * note that
   the code base is not clean in my view
@@ -9,5 +13,55 @@ backup of the joy programming language
   and you consider the code base hackable
   do a fork and maintain it
 
+-----------------------------------
+
+* dependencies
+  joy use the following GC
+  https://github.com/ivmai/bdwgc
+  I do not use git submodule
+  for the repo is too big
+  instead the following commit is used
+  7aba59b5853330c9368bc16dd606e1617c704334
+  I simply include the source code into joy's src directory
+
+-----------------------------------
+
 to build the interpreter of joy
 just type make
+
+-----------------------------------
+
+* joy library
+  * usrlib.joy -- personal user library, loaded by default
+  * inilib.joy -- the initial library of the joy system
+  * the basic libraries
+    * agglib.joy -- aggregates: sets, lists, strings
+    * seqlib.joy -- sequences: lists, strings with ordering
+    * numlib.joy -- numeric: integers, floats
+    * symlib.joy -- symbolic manipulation (only translations)
+      symtst.joy -- test file
+      symtst.out -- output
+  * the special libraries
+    * mtrlib.joy -- matrices and vectors
+      mtrtst.joy test file
+      mtrtst.out output
+    * tutlib.joy -- interactive tutorials
+      joytut.joy -- an application
+      joytut.com -- a (pseudo) input
+      joytut.out -- output
+    * lazlib.joy -- "lazy" infinite and finite lists
+      laztst.joy -- test file
+      laztst.out -- output
+    * lsplib.joy -- a small (eval-apply) lisp interpreter
+      lsplib.lsp -- a small library for this version of lisp
+      lsptst.joy
+      lsptst.lsp -- input
+      lsptst.out -- output
+    * plglib.joy -- propositional logic semantic tableaux
+      plgtst.joy -- test file
+      plgtst.out -- output
+    * grmlib.joy -- grammar library (generating and parsing)
+      grmtst.joy -- test file
+      grmtst.out -- output
+
+-----------------------------------

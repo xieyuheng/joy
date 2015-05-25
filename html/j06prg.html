@@ -1,0 +1,2019 @@
+<HTML>
+<HEAD>
+<TITLE> Some Simple Programming in Joy </TITLE>
+</HEAD>
+<BODY>
+<I> By Manfred von Thun </I>
+<H1> Introduction </H1>
+This paper shows how to write simple programs in Joy.
+Since Joy is very different from familiar programming languages,
+it takes a while to become used to writing programs in Joy.
+One way to start the learning process is by way of writing some simple
+generally useful library programs.
+In an implementation these may be part of an actual library,
+or they may be built into the language.
+<P>
+Some general <EM>utility program</EM>s include operators
+for manipulating the Joy stack just below the top element,
+further operators for manipulating aggregate values,
+and a few output programs.
+Generally useful are the
+<EM>stack type</EM>
+and the
+<EM>queue type</EM>.
+Values and operators of these two types
+are easily implemented as Joy lists and list operators.
+<P>
+Another collection of useful operators take an aggregate
+as parameter and produce a list of subaggregates.
+These operators are <EM>polymorphic</EM>
+in the sense that the aggregate parameter can be
+a (small) set, a string, or a list.
+For example, one such operator can take a set as parameter
+and produces a list of its subsets.
+All of these operators are definable without recursion
+by using the <KBD>linrec</KBD> combinator.
+<P>
+Some <EM>arithmetic operator</EM>s
+are often used to illustrate recursive definitions,
+although it is well known that iterative execution
+is more efficient.
+In particular the use of <EM>accumulating parameter</EM>s
+can often replace recursion.
+This is easily done in Joy using various iteration combinators.
+<P>
+Values of <EM>sequence type</EM>s, such as strings and lists,
+can be sorted, and sorted sequences can be merged.
+Programs for doing this are easily written in Joy
+without recursive definitions but using appropriate
+combinators instead.
+<P>
+Joy's inbuilt <EM>set type</EM> is implemented just as bitstrings,
+and hence it is limited to small sets of small numbers.
+The more useful <EM>big set type</EM>,
+which allows large sets of elements of any type,
+can be implemented in any language which has lists.
+It is simple to do in Joy,
+and the usual set-theoretic operations are
+easily provided.
+A similar implementation can be used for the <EM>dictionary type</EM>,
+which uses lookup tables for finite functions.
+<P>
+Also useful is the <EM>tree type</EM>,
+of lists, or lists of lists, or lists of lists of lists ...
+of elements other than lists.
+<P>
+The remainder of this paper illustrates programming in Joy
+by way of simple examples.
+Many of the programs are first written in pseudo-code
+and the translated into Joy.
+Some of the Joy programs here have been adapted
+from the literature on ML or 
+Miranda\footnote{"Miranda" is a trademark of Research Software Ltd}.
+The next section defines some useful general purpose operators
+and combinators.
+This is followed by a section on two little collections
+of operators for two datatypes, stacks and queues.
+A longer section deals with programs
+for creating and manipulating lists of subaggregates.
+A shorter section then illustrates the use of accumulating
+parameters for the efficient implementation of numeric functions.
+Then there is another section on sorting sequences and on merging sorted
+sequences.
+Another section gives an implementation of
+unrestricted sets and of lookup dictionaries.
+<H1>Utility operators and combinators</H1>
+<P>
+This section describes some very simple utilities which are useful
+in very different settings.
+Joy definitions are of the form
+<PRE>
+        ATOM   ==   PROGRAM
+</PRE>
+where the long equals <KBD>==</KBD> means that the atom
+on the left is being defined to cause the execution of the program
+on the right.
+<P>
+Joy has three important operations for manipulating
+the top few items of the stack:
+<KBD>pop</KBD> for removing the top item,
+<KBD>dup</KBD> for creating a copy of the top item,
+and <KBD>swap</KBD> for interchanging the top two items.
+Often it is necessary to perform similar operations
+further below the stack.
+The following define three similar operators
+which leave the top element of the stack intact
+and perform the work just below that.
+All three use the <KBD>dip</KBD> combinator which
+takes as a parameter a quoted program
+and below that a further item.
+The item is saved, the quoted program is executed
+and the item then restored.
+<PRE>
+        popd   ==  [pop ] dip
+        dupd   ==  [dup ] dip
+        swapd  ==  [swap] dip
+</PRE>
+The <KBD>popd</KBD> operator removes the second item.
+The <KBD>dupd</KBD> operator duplicates the second item.
+The <KBD>swapd</KBD> operator interchanges the
+second and third item.
+<P>
+Three similar operators affect the order of the
+top three items on the stack.
+The <KBD>rollup</KBD> operator places items one, two and three
+from the top in the order two, three, one.
+The <KBD>rolldown</KBD> operator places items one, two  and three
+in the order three, one, two.
+The <KBD>rotate</KBD> operator places them in the order
+three, two, one.
+<PRE>
+        rollup     ==  swap [swap] dip
+        rolldown   ==  [swap] dip swap
+        rotate     ==  swap [swap] dip swap
+</PRE>
+<P>
+The next examples are for <EM>unary operator</EM>s
+which expect an item on the stack
+and replace it with either a set or a string or a list
+containing just that item.
+All three operators work by first pushing
+The <EM> empty set </EM> <KBD> {} </KBD>
+or the <EM>empty string</EM> <KBD>""</KBD>
+or the <EM>empty list</EM> <KBD>[]</KBD>}
+on top of the stack.
+Then they use the <KBD>cons</KBD> operation to
+add the item below into the aggregate.
+The items have to be of the right type.
+The <KBD>unitset</KBD> operator requires a small number,
+the <KBD>unitstring</KBD> operator requires a character,
+and the <KBD>unitlist</KBD> operator requires anything.
+If the items are not of the right type,
+an error occurs when the <CODE>cons</CODE> is executed.
+<PRE>
+        unitset     ==  {} cons
+        unitstring  ==  "" cons
+        unitlist    ==  [] cons
+</PRE>
+The action of all three is reversed by the single standard operator
+<KBD>first</KBD>.
+<P>
+Analogously one may define three operators
+<KBD>pairset</KBD>, <KBD>pairstring</KBD> and <KBD>pairlist</KBD>,
+which form a set, string or list
+from <EM> two</EM> appropriate items on top of the stack:
+<PRE>
+        pairset     ==  {} cons cons
+        pairstring  ==  "" cons cons
+        pairlist    ==  [] cons cons
+</PRE>
+The action of all three is reversed by a single operator <KBD>unpair</KBD>,
+which may be defined in either of two equivalent ways:
+<PRE>
+        unpair  ==  uncons uncons pop
+        unpair  ==  uncons first
+</PRE>
+<P>
+Joy has two operators applicable to
+<EM> non-empty</EM> sets, strings and lists:
+The operator <KBD>first</KBD> extracts the first
+item of a string or list,
+and that item from a set which is the first
+in the underlying order.
+The operator <KBD>rest</KBD> removes the first item
+and returns the remaining set, string or list.
+Sometimes it is necessary to extract the
+<KBD>second</KBD> or <KBD>third</KBD> item.
+Suitable definitions are these:
+<PRE>
+        second  ==  rest first
+        third  ==  rest rest first
+</PRE>
+<P>
+The operators <KBD>uncons</KBD> and <KBD>unswons</KBD> undo what is done by
+<CODE>cons</CODE> and <CODE>swons</CODE>,
+Often it is useful to dissect not just one aggregate into
+its <CODE>first</CODE> and <CODE>rest</CODE>,
+but to dissect two aggregates.
+This can be done by <KBD>uncons2</KBD> and <KBD>unswons2</KBD>,
+defined as follows:
+<PRE>
+        uncons2   ==  [uncons ] dip uncons  swapd
+        unswons2  ==  [unswons] dip unswons swapd
+</PRE>
+Both expect two aggregates on top of the stack,
+both leave two <CODE>first</CODE>s and two <CODE>rest</CODE>s on the stack.
+For <CODE>uncons2</CODE> the two <CODE>first</CODE>s are items 3 and 4 on the stack,
+the two <CODE>rest</CODE>s are items 1 and 2.
+For <CODE>unswons2</CODE> it is the other way around.
+<P>
+Similarly, it is sometimes necessary to test whether  at least
+one of two aggregates
+is empty, or whether at least one of two numeric values is equal to zero.
+For a single parameter this is done by <CODE>null</CODE>,
+for two parameters it is done by <KBD>null2</KBD>,
+defined in either of two equivalent ways:
+<PRE>
+        null2  ==  [null] [true] [pop null] ifte
+        null2  ==  [ [[null] true] [pop null] ]  cond
+</PRE>
+<P>
+Strings and lists are special kinds of aggregates,
+they are <EM>sequence</EM>s.
+Sometimes it is necessary to reverse sequences.
+The naive way of doing this is recursively as follows:
+<PRE>
+          To reverse a sequence S:
+                 If    S is empty
+                       then return the empty sequence
+                       else    remove the first element
+                               reverse the rest of S
+                               append the first element of S at the tail
+</PRE>
+It is easy to see that this is very inefficient
+because the append operation requires a lot of copying,
+and every element to be appended requires portions
+of the rest to be copied again and again.
+A well-known optimisation uses an extra parameter,
+an <EM>accumulating parameter</EM>,
+to obtain the same effect.
+The idea is to prepend the elements of the original
+list onto the accumulating parameter.
+Sometimes this is expressed by analogy with railways.
+The <KBD>shunt</KBD> operator takes two sequences as parameters
+and, starting at the front of the topmost parameter,
+moves all items onto the front of the second parameter.
+Joy has a combinator <KBD>step</KBD> for stepping through
+all items of its top parameter,
+and for each item executing a program that is given
+as a further parameter.
+That program has to take the item and add it to the
+accumulating parameter, so it is the <KBD>swons</KBD> operator.
+So this is how <CODE>shunt</CODE> can be defined:
+<PRE>
+        shunt  ==  [swons] step
+</PRE>
+To reverse a list or a string,
+an empty list or empty string has to be supplied as
+an accumulating parameter just below the
+list or string that is to be reversed.
+So here are definitions for <KBD>reverselist</KBD>
+and <KBD>reversestring</KBD>:
+<PRE>
+        reverselist    ==  [] swap shunt
+        reversestring  ==  "" swap shunt
+</PRE>
+But there is something unsatisfactory about this,
+the reversal operation should be polymorphic.
+So the following version of <KBD>reverse</KBD>
+first tests whether the sequence to be reversed is
+a list or not,
+and inserts the appropriate accumulating parameter.
+The testing is done by the <KBD>iflist</KBD> combinator
+which takes two (here rather tiny) programs as parameters.
+and below that one other item,
+the list or string to be reversed.
+If the latter happens to be a list,
+then the first quoted program is executed,
+and it will push an empty list.
+Otherwise the second program is executed,
+and it will push an empty string.
+In either case the two top items are now
+<CODE>swap</CODE>ped and then <CODE>shunt</CODE>ed.
+<PRE>
+        reverse  ==  [[]] [""] iflist swap shunt
+</PRE>
+<P>
+It comes as a surprise that lists can be reversed in another way.
+The idea is this: When a list is executed by a combinator,
+all the members of the list will be literals,
+so they will each be pushed onto the stack.
+The last element of the list will end up on top of the stack.
+So the elements of the list will then be in reverse order.
+To make use of this idea we have to arrange that
+an initially empty list is treated as a stack.
+This is what the <KBD>infra</KBD> combinator does.
+It takes a list as one parameter and a program as the second.
+It uses the list as a temporary stack and executes the program.
+The resultant stack is then pushed as a list.
+For the reversal problem the program is the list to be reversed,
+and the other parameter has to be the empty list.
+That empty list first has to be inserted below the list
+to be reversed.
+So another program to reverse a list is this:
+<PRE>
+        reverselist  ==  [] swap infra
+</PRE>
+What makes this version possible is that in Joy the principle
+that <EM>program = data</EM> is extended to <EM>program = data = memory</EM>.
+This version is actually more efficient than the one given earlier.
+Of course it cannot be adapted for reversing strings.
+<P>
+The two principal operators for explicit output are
+<KBD>put</KBD>, which prints a single value of any type,
+and <KBD>putch</KBD>, which prints a single stand alone character
+without quote symbol.
+Two useful little utility operators are worth defining.
+The <KBD>putchars</KBD> operator uses the <KBD>step</KBD> combinator
+to step through the characters in a list or string
+and writes them to the output file without the enclosing
+<CODE>[]</CODE> or <CODE>""</CODE>.
+The <KBD>newline</KBD> operator just outputs
+the newline character <CODE>\n</CODE>
+to terminate a line.
+<PRE>
+        putchars  ==  [putch] step
+        newline     ==  '\n put
+</PRE>
+<P>
+Using the <CODE>step</CODE> combinator it is easy
+to define several conversion operators which can be useful.
+The first two produce sets from aggregates of upper or lower case
+aggregates.
+The last two produce strings of upper or lower case characters
+from aggregates of small numbers.
+<PRE>
+        upper2set == {} swap [64 - swons] step
+        lower2set == {} swap [96 - swons] step
+        set2upper == "" swap [64 + swons] step
+        set2lower == "" swap [96 + swons] step
+</PRE>
+<P>
+The <KBD>dip</KBD> combinator expects a quotation
+and below that an item that will be saved before
+execution of the quotation and restored afterwards.
+Sometimes one wants to save and restore two or even three items,
+so it is useful to have further variants <KBD>dip2</KBD> and <KBD>dip3</KBD>,
+defined as follows:
+<PRE>
+        dip2  ==  [dip] cons dip
+        dip3  ==  [dip] cons dip2
+</PRE>
+Note that <KBD>cons</KBD> is being used to build a <EM>constructed program</EM>
+that is then supplied as a parameter to the last combinator.
+<H1>Stacks and queues</H1>
+<P>
+This section and the next two contain implementations
+of two simple data types.
+Members of the <EM>stack type</EM>
+are linear structures which allow read and write access
+at one end only,
+and members of the <EM>queue type</EM>
+are linear structures which allow read access at one end
+and write access at the other end.
+Both have this much in common:
+the stack or queue remains on the Joy stack,
+and any stack or queue operations using it leave it there.
+Of course it can be explicitly removed with <CODE>pop</CODE>.
+<P>
+<EM> 1.</EM>
+First, the <EM>stack type</EM>.
+A stack is a linear structure that can grow by having items
+added, inspected and removed all from the same end.
+The simplest way to implement stacks in Joy is as lists.
+One essential operator is <KBD>st-new</KBD> for the creation of a new empty stack,
+which is just an empty list.
+So the definition is
+<PRE>
+        st-new  ==  []
+</PRE>
+<P>
+Stacks can have additional items pushed onto them,
+and this is done by adding them to the front of the list.
+Since the stack is already there,
+the new item will typically be first pushed onto the Joy
+stack, and then it is to be pushed onto the stack.
+One way to do this is to <CODE>swap</CODE> the item and the stack
+and then perform a <CODE>cons</CODE> operation.
+But Joy has an operation which combines these two,
+namely <KBD>swons</KBD>.
+So the <KBD>st-push</KBD> operation can be defined by
+<PRE>
+        st-push  ==  swons
+</PRE>
+An essential predicate is <KBD>st-null</KBD> for testing whether a stack is empty
+or null.
+However it will not do to just use <CODE>null</CODE>, since this will
+remove the stack --- but typically the stack is intended for
+further applications.
+So, to avoid losing the stack, it has to be <CODE>dup</CODE>licated first,
+and then the <CODE>null</CODE> test can be applied to the duplicate:
+<PRE>
+        st-null  ==  dup null
+</PRE>
+<P>
+The previous two operations both make sense
+when the stack is empty, but this is not the case
+for the stack operations to follow.
+The first of these is <KBD>st-top</KBD> for extracting the top element
+of the stack, while leaving the stack itself unchanged.
+The second is <KBD>st-pop</KBD> for removing the top element.
+The third is <KBD>st-pull</KBD> which combines the last two,
+it is the opposite of push.
+It extracts the top item and pops the stack.
+Ignoring the complication of an empty stack,
+the definitions would simply be:
+<PRE>
+        st-top   ==  dup first
+        st-pop   ==  rest
+        st-pull  ==  unswons
+</PRE>
+To guard against an empty stack,
+a test has to be performed to determine whether
+the stack is empty.
+If it is, then an error message should be given,
+otherwise the operation should be performed.
+So for all three operations the structure will be
+of the form
+<PRE>
+        ==   [null]  [ERROR-MESSAGE]  [PERFORM OPERATION]  ifte
+</PRE>
+The error messages should state which of the operations
+was being attempted, but otherwise they should be the same.
+So the name of the operation is given as a string
+parameter to an error handling operation.
+That particular operation will be called
+<CODE>_st-error</CODE>,
+and we leave the details of its implementation till a little later.
+The leading underscore <CODE>_</CODE> in the name has been
+added because this operation is not intended to be used
+by the programmer; in the current implementation
+the <KBD>help</KBD> command hides
+identifiers with a leading underscore.
+The remaining stack operations are then:
+<PRE>
+        st-top  == [null] ["st-top"  _st-error] [dup first] ifte
+        st-pop  == [null] ["st-pop"  _st-error] [rest     ] ifte
+        st-pull == [null] ["st-pull" _st-error] [unswons  ] ifte
+</PRE>
+As may be seen, the three operations still have a lot in common,
+and one might consider extracting that further.
+However, the result is likely to be less clear to the human reader.
+It remains to implement the error operation.
+It should state that an error has occurred due to an empty stack,
+and this part is the same for all three operations.
+It should also state which of the operations failed.
+So a minimal implementation of <CODE>_st-error</CODE>
+would simply write one string which is common for any call,
+and another string which is the specific parameter.
+This is crude but very easy to implement:
+<PRE>
+        _st-error  ==  "non_empty stack needed for " put put
+</PRE>
+A minor improvement is to concatenate the two strings
+(in the right order), so that only one string has to be written.
+But the double quotation marks in the output still look silly.
+So instead of writing the one or two strings with <CODE>put</CODE>,
+it looks nicer to write their constituent characters with <KBD>putchars</KBD>.
+Also, the line should be terminated with <KBD>newline</KBD>.
+Finally, there is little sense in continuing the computation,
+so after the two parts of the error message have been displayed,
+it is best to <KBD>abort</KBD>, to return to the top level.
+<P>
+In a library implementation
+for the collection of definitions of stack operations might look like this:
+<PRE>
+LIBRA (* stack *)
+
+_st-error == "non-empty stack needed for " putchars putchars newline abort;
+st-new  == [];
+st-push == swons;
+st-null == dup null;
+st-top  == [null] ["st-top"  _st-error] [dup first] ifte;
+st-pop  == [null] ["st-pop"  _st-error] [rest     ] ifte;
+st-pull == [null] ["st-pull" _st-error] [unswons  ] ifte.
+</PRE>
+As may be seen from the example,
+a library declaration begins with the word <KBD>LIBRA</KBD>
+and terminates with a period.
+In between is a sequence of definitions separated by semicolons <KBD>;</KBD>.
+A definition consists of an atomic symbol
+and then the symbol <KBD>==</KBD> followed by a Joy program.
+Note again that the <CODE>_st-error</CODE> operator
+is not really intended to be used outside the remaining definitions.
+It could well be hidden completely from outside.
+A mechanism for this will be illustrated below.
+<P>
+<EM> 2.</EM> Next, the <EM>queue type</EM>.
+A queue is a linear structure that can grow by
+having items added at one end, and inspected or removed from the other
+end.
+A simple minded implementation would consists of a single
+Joy list to which items are added at the end and removed from the front.
+But adding something at the end requires copying the
+entire list every time.
+Nothing would be gained by reversing the role of front and
+end, because in that case the removal requires
+copying of (almost) the entire list.
+A better implementation uses <EM> two</EM> lists.
+Conceptually one is the front of the queue,
+and items are removed at the front.
+Conceptually the other list is the back of the queue,
+but in reverse, and items are added to the front of this list.
+If at any time the list implementing the front
+of the queue becomes empty,
+the other list gets explicitly reversed and it becomes
+the front, and the empty list becomes the rear.
+There are two auxiliary operators that need only be visible
+to the remaining operators but not to the outside;
+in the following they are hidden in the private part of this module.
+Because they are hidden, there is no need to choose names
+which indicate the datatype on which they operate.
+<PRE>
+LIBRA (* queue *)
+
+HIDE
+  error   == "non_empty queue needed for " putchars putchars newline abort;
+  prepare == [null] [swap reverse] [] ifte
+IN
+  q-new   == [] [];
+  q-add   == swap [swons] dip;
+  q-addl  == swap [shunt] dip;
+  q-null  == prepare dup null;
+  q-front == prepare [null] ["q-front" error] [dup first] ifte;
+  q-rem   == prepare [null] ["q-rem "  error] [unswons  ] ifte
+END.
+</PRE>
+<P>
+As may be seen, such a declaration consists of the word <KBD>HIDE</KBD>,
+followed by a sequence of definitions, then the word <KBD>IN</KBD>
+followed by another sequence of definitions, and then the word <KBD>END</KBD>.
+A sequence of definitions is again separated by semicolons <KBD>;</KBD>.
+The whole declaration can occur inside a library declaration
+where a single definition can occur.
+Any hiding declaration can occur wherever a single definition
+can occur, so they can be nested.
+<P>
+The first auxiliary error reporting procedure, <CODE>error</CODE>, is
+similar to the one for stacks.
+The second auxiliary operation, <CODE>prepare</CODE>,
+prepares the two lists: if the list implementing the front
+happens to be empty,
+the roles of the two lists are interchanged.
+If the front list is not empty,
+nothing is done.
+<P>
+A new queue is created by <KBD>q-new</KBD> in the form of
+two empty lists.
+An item can be added (to the "rear of the queue")
+by <KBD>q-add</KBD> which adds it to the front of the second list.
+The members of a whole list can be added
+to the rear by <KBD>q-addl</KBD>.
+The operator <KBD>q-null</KBD> first prepares the two lists
+so that the list implementing the front
+is not empty, if that is possible at all.
+It then tests the front list.
+The operator <KBD>q-front</KBD> and <KBD>q-rem</KBD>
+extract respectively a copy of the front
+element or the front element itself.
+The copy or the original are left above the two lists.
+Both operators require the queue
+to be prepared so that the list implementing the front
+is not empty.
+Also, both operators need to check whether
+the front really is non-empty.
+If it is not, the error operator is called.
+<P>
+The definitions for stacks and queues are part of the library file
+<KBD>TYPLIB.JOY</KBD>.
+<H1>Lists of subaggregates</H1>
+The <EM>aggregate type</EM>s of Joy comprise sets of small numbers,
+or strings of characters, or lists of items of any kind.
+Much of this section deals with lists of aggregates constructed from a given
+aggregate.
+The principal tool is the <KBD>linrec</KBD> combinator.
+It expects four program parameters on the stack,
+an if-part, a then-part, a rec1-part and a rec2-part.
+Execution begins by saving the four parts and
+then executing the if-part.
+If that produces the truth value <CODE>true</CODE> on top of the stack,
+the then-part is executed and the combinator exits.
+Otherwise the rec1-part is executed,
+then the combinator calls itself with the same four parts,
+and then the rec2-part is executed.
+<P>
+The first definition below is for an operator <KBD>restlist</KBD>
+which takes any aggregate as parameter
+and produces the list of all those subaggregates
+that would be formed by repeatedly taking the <KBD>rest</KBD>s
+of the aggregate.
+Such an operator can of course be defined recursively
+and this could be done in any language.
+But in Joy it is possible to use a non-recursive definition
+using the <CODE>linrec</CODE> combinator.
+Here is some pseudocode:
+<PRE>
+1.      If    the aggregate is empty
+2.            then  form its unitlist
+3.            else    take a copy and the rest of that,
+                      recurse using this rest,
+                      eventually forming a list of aggregates,
+4.                    use cons to add the original aggregate
+                      to the front of this list
+</PRE>
+The above pseudocode translates directly into a recursive
+form in any language,
+but in Joy a non-recursive definition is also possible.
+The four program parameters for the <CODE>linrec</CODE> combinator
+correspond exactly to the labelled lines.
+Nothing corresponds to the unlabelled line,
+the <CODE>linrec</CODE> combinator recurses here automatically.
+<PRE>
+    restlist  ==
+1.        [ null ]
+2.        [ unitlist ]
+3.        [ dup rest ]
+4.        [ cons ]
+          linrec
+</PRE>
+<P>
+The next program also takes an aggregate as parameter
+and produces a list of subaggregates.
+But the subaggregates are those obtained by successively
+deleting the last elements.
+In analogy with the previous operator it will be called
+the <KBD>frontlist</KBD> operator.
+For empty aggregate parameters again the unitlist
+has to be returned,
+so the if-part and the then-part are the same as before.
+Also, for non-empty aggregates the aggregate has to be taken apart
+in the rec1-part.
+This can be done in two ways.
+We can take the front aggregate and the last element,
+but that would require defining a suitable operator,
+and it would require expensive copying in the case of list
+or string aggregates.
+Alternatively we can just <CODE>uncons</CODE>.
+This leaves only the rec2-part to be written.
+But it will
+be more complicated than for the previous operator.
+Let us ignore for the moment that the operator is intended to be used
+for aggregates of any of the three types.
+When the anonymous recursion has completed,
+the stack will contain the first item of the non-empty aggregate
+and above that the <CODE>frontlist</CODE> of its rest.
+The first item has to be <CODE>cons</CODE>ed into each member
+of the frontlist,
+and that is best done by
+<PRE>
+        [cons]  map
+</PRE>
+Then that first item, which is now still the second element
+on the stack, has to be deleted.
+This can be done by a variant of <CODE>pop</CODE>, namely <CODE>popd</CODE>.
+Finally, assuming that the operator is to be used for lists,
+the empty list has to be added to the frontlist,
+and the easiest way is by <CODE>[] swap cons</CODE>,
+or simply by <CODE>[] swons</CODE>.
+This gives the following provisional rec2-part:
+<PRE>
+        [ [cons] map   popd   [] swons ]
+</PRE>
+But the assumption that the operator is to be used only
+for lists is unnecessarily restrictive.
+The final part, adding an empty aggregate,
+should depend on what the initial aggregate was,
+a set, a string or a list.
+This can be achieved by looking up the first
+element of the frontlist,
+it is a one element aggregate and taking its rest
+produces the required empty aggregate of that type.
+So the required rec2-part is:
+<PRE>
+        [ [cons] map   popd   dup first rest swons ]
+</PRE>
+The entire definition for <CODE>frontlist</CODE>,
+applicable to any aggregate, now is:
+<PRE>
+    frontlist ==
+        [ null ]
+        [ unitlist ]
+        [ uncons ]
+        [ [cons] map popd dup first rest swons ]
+        linrec
+</PRE>
+<P>
+The next program defines an operator <KBD>subseqlist</KBD>
+which is in some ways a combination of the preceding ones.
+Again it takes any aggregate as parameter
+and returns a list of subaggregates.
+This time the subaggregates are all those obtainable
+from the parameter aggregate by deleting first or last elements.
+For ordered aggregates, lists and strings,
+the resulting subaggregates will still contain elements
+in the same order as the parameter.
+It is tempting to define the operator very simply by
+<PRE>
+        ==   frontlist  [restlist]  map
+</PRE>
+But this produces not a list of subsequences
+but a list of list of subsequences.
+This list of lists could then be flattened to a single list,
+even if this is somewhat inefficient.
+However, a different solution is possible.
+<P>
+The if-part and the then-part are as
+for <CODE>restlist</CODE> and <CODE>frontlist</CODE>, of course.
+The rec2-part is easy, it is only necessary to <CODE>concat</CODE>enate
+two lists that were produced by the rec1-part.
+But the rec1-part is rather complex,
+and this is what it has to do:
+the first element of the aggregate has to be extracted
+and later it has to be <CODE>cons</CODE>ed into every
+subaggregate of the <CODE>frontlist</CODE> of the rest
+of the aggregate.
+But also the rest of the aggregate
+has to be made available for the <CODE>linrec</CODE> combinator
+to work on.
+So the rec1-part must <CODE>uncons</CODE> the aggregate,
+and produce a second copy of the rest.
+The second copy has to be kept aside by using the <CODE>dip</CODE>
+combinator to work on the original copy.
+So an intermediate draft of the rec1-part looks like this:
+<PRE>
+        [ uncons  dup
+          [ ... ]
+          dip ]
+</PRE>
+The <CODE>[...]</CODE> program must take the <CODE>frontlist</CODE>
+(of the original copy of the rest) and then <CODE>cons</CODE>
+the first element into each of the members of the result.
+We already know how to do that, and how to delete the
+hidden first member.
+So the rec2-part is the following:
+<PRE>
+        [ uncons  dup
+          [ frontlist  [cons] map  popd ]
+          dip ]
+</PRE>
+The entire program now is this:
+<PRE>
+    subseqlist ==
+        [ null ]
+        [ unitlist ]
+        [ uncons dup [frontlist [cons] map popd] dip ]
+        [ concat ]
+        linrec
+</PRE>
+The program uses <CODE>frontlist</CODE>,
+but because the latter is defined without recursion,
+it is possible to simply use the RHS of the definition
+of <CODE>frontlist</CODE> and insert that textually into the
+definition of <CODE>subseqlist</CODE>.
+The <CODE>frontlist</CODE> and <CODE>subseqlist</CODE> operators
+were adapted from recursive programs in
+\AX{Thompson}{1991 p 247}{Thompson:91}.
+<P>
+The next program defines a unary operator <KBD>powerlist</KBD>
+which for any aggregate returns a list of all subaggregates.
+If the parameter aggregate has <VAR>N</VAR> members, the resulting
+list of subaggregates has <VAR>2^N</VAR> members.
+<PRE>
+    powerlist ==
+        [ null ]
+        [ unitlist ]
+        [ uncons ]
+        [ dup swapd [cons] map popd swoncat ]
+        linrec
+</PRE>
+It uses the <CODE>linrec</CODE> combinator and the same
+if-part and then-part as the previous programs.
+It also uses the same rec1-part as the <CODE>frontlist</CODE>
+program: before recursing,
+the parameter is split into its first and its rest by <CODE>uncons</CODE>.
+The recursion then produces the powerlist of the rest.
+The rec2-part then uses that result to produce
+two copies, using <CODE>dup</CODE>.
+One copy is left untouched,
+the other has the original first element
+<CODE>cons</CODE>ed before every sublist using <CODE>map</CODE>.
+For this to work, the original first element
+has to be placed in the right position by <CODE>swapd</CODE>
+and eventually deleted by <CODE>popd</CODE>.
+The two resultant lists are finally combined with
+<CODE>swoncat</CODE>.
+This produces the list of subaggregates starting with the empty one;
+if <CODE>concat</CODE> is used instead of <CODE>swoncat</CODE>,
+the list ends with the empty one.
+Neither method yields the subsequences sorted according to <CODE>size</CODE>;
+but see the later section on sorted sequences.
+<P>
+The next program defines a binary operator <KBD>insertlist</KBD>.
+This operator
+expects a list or a string as a parameter
+and below that a potential list member or a character.
+It returns a list whose elements are either lists or strings,
+each with the potential member or character inserted once at all possible
+positions.
+So if the original list or string has <VAR>N</VAR> members,
+the resultant list has <VAR>N+1</VAR> lists or strings as members.
+<PRE>
+    insertlist ==       (*   Item  Sequence   ->   List(Sequence) *)
+        cons
+        [ small ]
+        [ unitlist ]
+        [ dup                           (* keep original *)
+          unswons [uncons] dip swons ]  (* take out second *)
+        [ swap [swons] cons map         (* swons in second *)
+          cons ]                        (* cons in original *)
+        linrec
+</PRE>
+The operator can also be used, with a set parameter instead of
+a string or list.
+Then it produces a list of <VAR>N+1</VAR> identical sets,
+each with the new member added.
+But such a use will rarely be wanted.
+<P>
+The <KBD>permlist</KBD> operator
+expects a sequence and returns the list of all <EM>permutation</EM>s
+of that sequence.
+So if the original sequence has <VAR>N</VAR> members,
+the result list has factorial(<VAR>N</VAR>) members.
+<PRE>
+    permlist ==
+        [ small ]
+        [ unitlist ]
+        [ uncons ]
+        [ swap [swap insertlist] cons map
+          flatten ]
+        linrec
+</PRE>
+Note again that in the two preceding programs the <CODE>map</CODE> combinator
+uses a <EM>constructed program</EM>.
+<P>
+The <KBD>zip</KBD> operator expects two aggregate parameters,
+not necessarily of the same type, and not necessarily of the same <CODE>size</CODE>.
+It produces a list of two element lists by
+combining corresponding elements from the two aggregates.
+The result list contains as many pairs as the smaller of the two
+parameter aggregates.
+Here is the definition:
+<PRE>
+    zip ==
+        [ null2 ]
+        [ pop pop [] ]
+        [ uncons2 ]
+        [ [pairlist] dip cons ]
+        linrec
+</PRE>
+This might be paraphrased as:
+If one or the other of the two parameter aggregates is <CODE>null</CODE>,
+then <CODE>pop</CODE> them both and return the empty list <CODE>[]</CODE>,
+otherwise take out the two <CODE>first</CODE> elements
+and the two <CODE>rest</CODE>s,
+recurse with the two <CODE>rest</CODE>s
+producing a result list of two element lists of that,
+then <CODE>dip</CODE> below that result list to combine the two previous <CODE>first</CODE>s
+with <KBD>pairlist</KBD> to form a two element list,
+and <CODE>cons</CODE> that into the front of the result list.
+<P>
+Related to this is the more general <KBD>zipwith</KBD> combinator,
+adapted from
+\AX{Bird and Wadler}{1988 p 57}{Bird:88}.
+It takes three parameters,
+two aggregates and one quotation which can be used
+to combine members of the aggregates.
+The program again uses the <CODE>linrec</CODE> combinator
+which needs four quoted programs as parameters.
+The fourth quotation now has to be a <EM>constructed program</EM>,
+it is built from the program parameter of <CODE>zipwith</CODE>
+and the program stub <CODE>[dip cons]</CODE> already seen
+for <CODE>zip</CODE>.
+The other three program parameters for <CODE>linrec</CODE>
+first have to be <CODE>dip</CODE>ped below the parameter of <CODE>zipwith</CODE>.
+The definition for this combinator thus is:
+<PRE>
+    zipwith ==
+1.       [ [ null2 ]
+2.         [ pop pop [] ]
+3.         [ uncons2 ] ]
+         dip
+4.       [ dip cons ] cons
+         linrec
+</PRE>
+<P>
+A list of sequences can be concatenated into a single sequence
+by the unary operator <KBD>flatten</KBD>.
+The code is straightforward:
+if the parameter list is empty,
+then there is nothing to concatenate, leave it as it is.
+Otherwise use <CODE>uncons</CODE> to take out its first and its rest,
+recurse anonymously on the rest to produce the <CODE>flatten</CODE>ed
+result of that,
+and finally <CODE>concat</CODE>enate the saved first part
+to the front of the last result.
+<PRE>
+    flatten  ==  [null]  []  [uncons]  [concat] linrec
+</PRE>
+<P>
+A two dimensional <EM>matrix</EM>
+can be implemented as a list of lists.
+One important matrix operation is the interchange of rows and columns,
+performed by the unary operator <KBD>transpose</KBD>.
+A draft of the program is the following:
+<PRE>
+          To transpose a list of lists LL :
+1                If    LL is empty or some sublist of LL is empty
+2                      then     pop  it off and return the empty list  [] 
+                       else    (all sublists are non-empty)
+3a                             construct a list of all the  first s of sublists
+3b                             construct a list of all the  rest s of sublists
+                               recurse anonymously on the list of  rests
+4                               cons  the list of  firsts into the result.
+</PRE>
+This version has been adapted from
+\AX{Reade}{1989 p 133}{Reade:89}.
+To test the disjunction whether LL is empty or some of its
+sublists are empty,
+we use the conditional combinator <KBD>ifte</KBD>.
+The if-part has to test whether LL is empty,
+and if it is, then the then-part has to return <CODE>true</CODE>.
+Otherwise the then-part will have to determine whether some
+sublists of LL are empty.
+This is best done with the combinator <KBD>some</KBD>.
+So part 1 of the Joy version is:
+<PRE>
+1        [null]  [true]  [[null] some]  ifte
+</PRE>
+For parts 3a and 3b it is necessary to use the parameter LL
+to produce two lists, of the <CODE>first</CODE>s and the <CODE>rest</CODE>s.
+Either of these two can be obtained with the <KBD>map</KBD> combinator.
+To obtain the two lists, the <KBD>cleave</KBD> combinator
+can be used, it takes two quotation parameters and a further
+parameter, and produces two values,
+one from each of the two quotations.
+So parts 3a and 3b are just:
+<PRE>
+3a      [ [first] map ]
+3b      [ [rest ] map ]
+        cleave
+</PRE>
+The entire Joy program thus is:
+<PRE>
+    transpose ==
+1       [ [null] [true] [[null] some] ifte ]
+2       [ pop [] ]
+3       [ [[first] map] [[rest] map] cleave ]
+4       [ cons ]
+        linrec;
+</PRE>
+<P>
+Alternatively, line 1 can be replaced by the following:
+<PRE>
+1        [ [null] [[null] some] disjoin i ]
+</PRE>
+Here the two tests are first <KBD>disjoin</KBD>ed
+to form a single test predicate.
+This is the called by the <CODE>i</CODE> combinator.
+The net effect is exactly the same as in the version given earlier.
+<P>
+A common binary operation on aggregates
+is that of forming the <EM>Cartesian product</EM>.
+It will take two aggregates as parameters
+and produce the list of two element list
+which each contain one element from each of the two
+aggregates.
+If the two aggregates have <VAR>M</VAR> and <VAR>N</VAR> members respectively,
+then the resultant list has <VAR>M \times N</VAR> elements.
+In order to form the Cartesian product,
+it is necessary to consider each of the members of one aggregate
+with each of the members of the other aggregate.
+This is like <CODE>step</CODE>ping through an aggregate,
+except that there are two aggregate to be stepped through.
+It will be useful first to define a combinator <KBD>step2</KBD>
+which does just that,
+leaving at each step two items on top of the stack.
+Then the Cartesian product operator will just
+form their pairs, and then form a list of all these pairs.
+An application of the <CODE>step2</CODE> combinator will look like this:
+<PRE>
+        A1   A2   [P]   step2
+</PRE>
+The implementation is based on the simple idea that
+<CODE>A2</CODE> and <CODE>[P]</CODE> be used to construct a program
+which is then used by the ordinary <CODE>step</CODE> combinator
+to step through the elements of <CODE>A1</CODE>:
+<PRE>
+        A1   [ .. A2 .. [P] .. ]   step
+</PRE>
+We now fill in the dots.
+The program to be constructed has to <CODE>step</CODE> through
+the members of <CODE>A2</CODE> using a program which depends on <CODE>[P]</CODE>.
+It has to do this for each member of <CODE>A1</CODE>,
+and when it has done that the current member of <CODE>A1</CODE>
+can be <CODE>pop</CODE>ped off.
+So the program will have to look like this:
+<PRE>
+        A1   [ A2  [ .. P ]  step  pop ]   step
+</PRE>
+Since <CODE>P</CODE> must be allowed to consume a current member of
+<CODE>A1</CODE> but this still has to be available
+for the next inner <CODE>step</CODE>,
+that member of <CODE>A1</CODE> first has do be duplicated,
+below the current member of <CODE>A2</CODE>.
+So the dots are just <CODE>[dup] dip</CODE>.
+In sum, the required program is
+<PRE>
+        A1   [ A2  [ [dup]  dip  P ]  step  pop ]   step
+</PRE>
+The definition of <KBD>step2</KBD> must construct that program
+from <CODE>A2</CODE> and <CODE>[P]</CODE> and then call <CODE>step</CODE>
+with just two parameters, the program just constructed
+and below that the other aggregate <CODE>A1</CODE>.
+The definition looks like this:
+<PRE>
+    step2  ==
+        [[dup] dip]  swoncat            (* form inner quote *)
+        [step pop]  cons                (* form outer quote *)
+        cons                            (* insert A2 *)
+        step                            (* through A1 *)
+</PRE>
+<P>
+It is now relatively easy to define the <EM>Cartesian product</EM> operator
+as follows.
+First we need to insert an <EM>accumulating parameter</EM>,
+an empty list <CODE>[]</CODE>. It has to be inserted <EM> below</EM>
+the two aggregates of which the Cartesian product is to be computed.
+This is easily done with <CODE>[] rollup</CODE>.
+The program which is then used by the <CODE>step2</CODE> combinator
+has to form the <CODE>pairlist</CODE> of the two items on top of the stack.
+The resultant pair has to be inserted into the accumulator with
+<CODE>swons</CODE>.
+But between the accumulator and the just formed pair
+is the current original member of the first aggregate
+which must be left intact.
+So the pair and the member have to be <CODE>swap</CODE>ped,
+and the <CODE>swons</CODE> has to be done below the member,
+by <CODE>dip</CODE>.
+This is the program that is given as the parameter for <CODE>step2</CODE>.
+So the definition for the <KBD>cartproduct</KBD> operator is
+<PRE>
+    cartproduct  ==
+        [] rollup
+        [pairlist swap [swons] dip]
+        step2
+</PRE>
+The program works for aggregates of any type,
+and the two aggregates do not have to be of the same type.
+If both are lists of numbers or sets of small numbers,
+other variations are possible:
+By changing the pairing operator <CODE>pairlist</CODE> to, say,
+multiplication <CODE>*</CODE>,
+we obtain a program which produces a list of all products.
+By further changing the accumulator <CODE>[]</CODE> to
+the number <CODE>0</CODE> and the insertion operation <CODE>swons</CODE>
+to, say, addition <CODE>+</CODE>,
+we obtain a program which produces the sum of all <VAR>M \times N</VAR> products.
+For two numeric aggregates of the same size, say <VAR>N</VAR>,
+another binary operator can be defined, the <KBD>scalarproduct</KBD>:
+<PRE>
+        scalarproduct  ==
+            0 rollup                             (* accumulator *)
+            [ null2 ]
+            [ popd ]
+            [ uncons2 [* +] dip2 ]
+            tailrec
+</PRE>
+It produces the sum of all <VAR>N</VAR> products of pairs taken from
+corresponding positions in the two aggregates.
+<H1>Arithmetic operators</H1>
+<P>
+This section gives efficient implementation
+of several well-known functions
+which are often used in the literature for
+demonstration purposes:
+the <EM>factorial</EM>, the <EM>Fibonacci</EM>-function,
+<EM>exponentiation</EM> and the <EM>greatest common divisor</EM>.
+All of them are often defined recursively,
+and of course they can be defined recursively in Joy.
+Using one of several suitable recursion combinators
+they can be computed recursively in Joy
+without a recursive definition.
+But recursive execution in any language
+can be inefficient.
+<P>
+There are well known techniques for <EM>removing linear recursion</EM>,
+see for example
+\AX{Bauer and W\"ossner}{1982 Chapter 4}{Bauer-Woessner:82}.
+The same topic is discussed in
+\AX{Henson}{1987 Chapter 4}{Henson:87}
+using the useful concept of <EM>eureka definition</EM>s
+due to Burstall and Darlington.
+These involve creative steps in the production
+of more efficient versions of programs,
+and hence would be difficult to perform
+by an optimising program.
+<P>
+Several of the functions to be defined
+require a little program to be executed
+a number of times.
+A useful combinator for this is <KBD>times</KBD>.
+It requires the program to be repeated as the top element
+of the stack
+and the required number of repetitions to be the second
+element on the stack.
+<P>
+The factorial of a number <VAR>n</VAR> is simply
+the product of <VAR>n</VAR> factors from <VAR>1</VAR> to <VAR>n</VAR>.
+To compute it using <CODE>times</CODE>,
+a small program has to be pushed on top
+of the number <VAR>n</VAR> which is the parameter.
+The number itself will be consumed by <CODE>times</CODE>.
+The program works on two other numbers on the stack.
+One of these is the accumulating parameter,
+it has to start at <VAR>1</VAR>.
+The other is the next factor to be used by
+the program with which to multiply the accumulator.
+The multiplication has to be done without losing
+the factor, so it has to be duplicated first.
+Apart from doing the multiplication,
+the program also has to increment the factor using
+the successor operator <KBD>succ</KBD>.
+The program which is the parameter to <CODE>times</CODE>
+thus is
+<PRE>
+        [dup  [*]  dip  succ]
+</PRE>
+Before the <CODE>times</CODE> combinator can get to work
+on the parameter <VAR>n</VAR> and the quoted program,
+the accumulator and the first factor
+have to be placed in position, below the parameter <VAR>n</VAR>.
+Both begin with the value <VAR>1</VAR>,
+so the <CODE>rolldown</CODE> operator can be used
+to push these two values below <VAR>n</VAR>.
+Finally, after <CODE>times</CODE> has completed,
+the stack will contain the required accumulator value
+but also on top of that the next factor.
+The latter is simply <CODE>pop</CODE>ped off.
+The entire definition of <KBD>fact</KBD> is:
+<PRE>
+        fact == 1 1 rolldown [dup [*] dip succ] times pop
+</PRE>
+<P>
+The <EM>Fibonacci</EM> function can be computed in a similar way.
+Again there is a certain computation that has to be repeated
+a number of times as given by the parameter <VAR>n</VAR>.
+Again the computation involves two further numbers,
+the larger one is to be replaced by their sum,
+and the smaller one is to be replaced by the former larger one.
+Adding the two must not destroy the original larger number,
+so again it has to be <CODE>dup</CODE>licated.
+The addition is then performed under the control of <CODE>dip</CODE>.
+Then the two numbers are <CODE>swap</CODE>ped.
+This describes the little program that serves as the parameter
+to the <CODE>times</CODE> combinator.
+Before it can start, the two initial values <VAR>0</VAR> and <VAR>1</VAR>
+have to be placed below the parameter <VAR>n</VAR> with <CODE>rolldown</CODE>.
+When it has completed, the required accumulated sum
+is the second element,
+and the top element, the useless next summand, is <CODE>pop</CODE>ped.
+So this is the definition of <KBD>fib</KBD>:
+<PRE>
+        fib  ==  0 1 rolldown [dup [+] dip swap] times pop
+</PRE>
+This version of the Fibonacci function
+requires a computation time which is a linear
+function of the parameter <VAR>n</VAR>.
+<P>
+The recursive version of the Fibonacci function
+requires quadratic computation time.
+Since the result values are not very large,
+it is often used as a test program.
+What is of interest is the number of recursive calls
+made during the computation,
+to be divided by the total time it took.
+To obtain the number of recursive calls
+it is often convenient to use a variant of the Fibonacci
+function, sometimes called <KBD>nfib</KBD>.
+It has the property that the value returned
+is the same as the number of calls made during recursive
+execution.
+The following are recursive definitions
+of Fibonacci and its variant:
+<PRE>
+    r-fib  ==  [small] []      [pred dup pred [r-fib ] app2 +     ] ifte
+    r-nfib ==  [small] [pop 1] [pred dup pred [r-nfib] app2 + succ] ifte
+</PRE>
+These are recursive definitions which
+of course are intended to run in quadratic time.
+The following is a definition of <KBD>nfib</KBD> which uses
+accumulators to run in linear time.
+Of course it does not measure its own runtime,
+it is included here to illustrate a programming technique.
+<PRE>
+        nfib  ==  1 1 rolldown [dup [+ succ] dip swap] times pop
+</PRE>
+<P>
+The next two programs are for <EM>binary operator</EM>s
+which compute functions of two parameters:
+the <EM>exponentiation</EM> function
+and the <EM>greatest common divisor</EM>.
+Exponentiation can be computed by performing
+a certain operation as many times as given by
+the exponent.
+This description again suggests using the <CODE>times</CODE>
+combinator to execute a quoted program several times.
+The operation to be repeated consists
+in multiplying an accumulator by the base
+which is the second parameter.
+So it is necessary to construct
+a little program from the base which
+for every call will multiply by the base.
+Assuming that the base is in the right position on the stack,
+the program is easily constructed,
+by
+<PRE>
+        [*] cons
+</PRE>
+Before the <EM>constructed program</EM> can be handed to <CODE>times</CODE>,
+the initial value <VAR>1</VAR> has to be placed as an accumulator
+below the two numbers which are the two parameters,
+the base and the exponent.
+This is done by <CODE>1 rollup</CODE>.
+To get the two parameters into the order appropriate
+for <CODE>cons</CODE> it is necessary to perform a <CODE>rotate</CODE> first.
+So here is the <KBD>exp</KBD> operator:
+<PRE>
+        exp  ==  1 rotate [*] cons times
+</PRE>
+The technique of first constructing a program (here by <CODE>cons</CODE>)
+and then supplying it to a combinator (here <CODE>times</CODE>)
+is very useful in Joy.
+<P>
+The next program computes the greatest common divisor
+of two numbers,
+using <EM>Euclid's algorithm</EM>.
+The algorithm uses two numbers
+and repeatedly takes the remainder after
+dividing one by the other.
+The remainder obtained is then used to replace
+the dividend.
+The process is repeated as long as
+the potential divisor is positive.
+So, unlike the previous programs, we cannot use the <CODE>times</CODE>
+combinator.
+Instead a combinator called <CODE>while</CODE> is used
+which resembles while-loops in imperative languages.
+It takes two parameters:
+the while-part is a quoted program which must return a truth value,
+and the do-part is a quoted program which can compute anything.
+The while-part in the following <KBD>gcd</KBD> program
+is of course very similar to a corresponding part
+in the <CODE>fib</CODE> program.
+<PRE>
+    gcd  ==  [0 >] [dup [rem] dip swap] while pop
+</PRE>
+<P>
+Two other arithmetic functions
+that are sometimes useful are for
+computing the <KBD>sum</KBD> or the <KBD>product</KBD>
+of a set or a list of numbers.
+Both are best implemented by <KBD>step</KBD>ping through
+all members of the set or list,
+doing additions or multiplications with an accumulator every time.
+The initial accumulator value, <CODE>0</CODE> or <CODE>1</CODE>,
+is first pushed onto the stack below the parameter set or list.
+For comparison, the third line below gives a definition
+of the <KBD>size</KBD> operator which is applicable to any aggregate.
+The fourth line below gives a definition of a similar operator
+<KBD>size2</KBD> for determining the total number
+of elements in a list of aggregates.
+If these aggregates are themselves lists,
+then their members are counted but not the members of their sublists.
+<PRE>
+    sum     ==  0  swap  [+       ]  step
+    product ==  1  swap  [*       ]  step
+    size    ==  0  swap  [pop succ]  step
+    size2   ==  0  swap  [size  + ]  step
+</PRE>
+A generalisation of <CODE>size2</CODE> for counting the leaves
+in recursive lists or trees is <KBD>treesize</KBD>,
+defined later.
+
+<H1>Sorted sequences</H1>
+<P>
+The <EM>sequence type</EM>s of Joy are the <EM>string type</EM>
+and the <EM>list type</EM>.
+Values of these types can be ordered.
+Strings contain just characters,
+but lists may contain anything.
+So for lists it only makes sense to speak of ordering
+if the elements are characters or integers
+or something else that has an ordering defined on it.
+<P>
+An informal description of the <EM>quicksort</EM> algorithm is this:
+<PRE>
+To sort a sequence S :
+1       If    S is small (has only 0 or 1 element)
+2             then it is sorted already, leave it alone
+              else    (S has at least one element)
+3                     using     the first of S
+                                as a "pivot" for comparison,
+                                split the rest of S into two portions -
+                                those that are less than the pivot
+                                and those that are not
+                      separately sort both portions P1 and P2
+4                     concatenate    the now sorted lesser portion,
+                                     the pivot, and
+                                     the sorted other portion.
+</PRE>
+The following is a definitions of an operator <KBD>qsort</KBD>
+which uses the above algorithm.
+But instead of using explicit <EM>binary recursion</EM> it
+uses the <KBD>binrec</KBD> combinator.
+This is like the <CODE>linrec</CODE> combinator
+except that it recurses twice,
+once each on the top two element of the stack.
+The recursions again occur between the rec1-part
+and the rec2-part.
+The program also uses another combinator <KBD>split</KBD>
+which takes as parameter an aggregate
+and above that a quoted program which must return a truth value.
+The <CODE>split</CODE> combinator returns two aggregates,
+containing those elements for which the test yields <CODE>false</CODE>
+and those for which it yields <CODE>true</CODE>.
+The <CODE>split</CODE> combinator has access
+to the remainder of the stack which in this case contains
+the pivot.
+So the test determines whether the pivot is <CODE>></CODE>
+than the element being examined.
+<PRE>
+    qsort  ==
+1       [ small ]
+2       [ ]
+3       [ uncons [>] split ]
+4       [ swap23 cons concat ]
+        binrec
+</PRE>
+<P>
+Sometimes it is required to sort a list
+of aggregates on the basis of their first elements.
+In that case it is necessary to supply
+to the comparison operator <CODE>></CODE> not the pivot
+and the element to be apportioned by <CODE>split</CODE>,
+but their first elements instead.
+This is conveniently done by the <KBD>app2</KBD> combinator
+which applies a quoted program to two elements
+on top of the stack and replaces them by whatever
+values the programs return.
+<PRE>
+    qsort1  ==
+1       [ small ]
+2       [ ]
+3       [ uncons [[first] app2 > ] split ]
+4       [ swap23 cons concat ]
+        binrec
+</PRE>
+<P>
+Note that in part 3 when the first element of the pivot
+has to be compared with the first element of the
+aggregate to be apportioned,
+the first element of the pivot is being extracted every time.
+It would perhaps be more efficient if the first element of the
+pivot is extracted just once,
+as soon as the pivot is available.
+In that case it is necessary to take the pivot apart with
+<CODE>unswons</CODE>, but this has to be done by <CODE>dip</CODE>ping
+below the rest of the list still to be sorted.
+Then the quotation parameter to <CODE>split</CODE>
+just needs to take out the <CODE>first</CODE> of the current aggregate
+and compare it with the first of the pivot.
+After <CODE>split</CODE> has done its job,
+the pivot has to be re-assembled by <CODE>swons</CODE>,
+but this now has to be done below the two
+portions with <KBD>dip2</KBD>.
+So part 3 can be replaced by
+<PRE>
+3       [ uncons [unswons] dip [first >] split [swons] dip2 ]
+</PRE>
+<P>
+Sometimes it might be necessary to sort a list of items
+on the basis not of their first element
+but on their size or their second or third element
+or even the size of the second of the third element.
+For the last example it would only be necessary
+to use <CODE>[third second size]</CODE> instead of <CODE>[first]</CODE>
+in the <CODE>qsort1</CODE> program.
+But it would be impossible to anticipate
+all alternative sorting bases for a library,
+and it would be awkward to have to write
+the appropriate sorting program on every special occasion.
+It is possible to write a general quicksort program
+which takes as an additional parameter
+something like
+<CODE>[first]</CODE> or <CODE>[third second size]</CODE>.
+The <KBD>mk-qsort</KBD> combinator does just that:
+<PRE>
+    mk_qsort ==
+        [ [small] [] ] dip
+        [ app2 >] cons [split] cons [uncons] swoncat
+        [ swap23 cons concat ]
+        binrec
+</PRE>
+It begins in line 1 by inserting
+the standard if-part and then-part below its parameters.
+In line 2 it uses the parameter to build a <EM>constructed program</EM>,
+the required rec1-part.
+Then in line 3 it pushes the standard rec2-part.
+At this point the top five elements
+of the stack are the list to be sorted
+and above that the four program parts needed for <CODE>binrec</CODE>.
+The latter now executes.
+For example the program
+<PRE>
+        [third second size]  mk-qsort
+</PRE>
+will sort a list of lists of three or more elements
+whose third member are aggregates of two or more elements.
+It will sort according to the size
+of the second of the third element.
+<P>
+The binary operator <KBD>insert</KBD> takes a sorted sequence
+and a potential new member
+as parameters, it returns a new sequence with the additional member
+inserted in the appropriate position.
+Here is a draft program:
+<PRE>
+To insert an item into a sorted sequence :
+1       If    the sequence is empty or
+               its first element is >= than the item
+2             then add the new item in the front of the sequence
+3             else    set aside the first item of the sequence
+                      recurse with the rest of the sequence and the new item
+4                     add the previously set aside first item to the front
+</PRE>
+The disjunction in line 1 is best handled by the <KBD>disjoin</KBD>
+operator on programs.
+It expects two quoted programs which return a truth value,
+and it returns a single quoted program which computes their disjunction.
+So line 1 consists of two quoted programs
+one of them tests whether the sequence is empty,
+the other tests whether its first element is <CODE>>=</CODE> than the item
+to be inserted.
+The <CODE>disjoin</CODE> operator then produces their disjunction.
+The resulting program is the if-part for the <CODE>linrec</CODE>
+combinator.
+The other three parts are now quite obvious.
+So the definition in Joy is:
+<PRE>
+    insert ==
+1       [ pop null ]  [ [first] dip ]  disjoin
+2       [ swons ]
+3       [ [uncons] dip ]
+4       [ cons ]
+        linrec
+</PRE>
+<P>
+Two sorted sequences can be <KBD>merge</KBD>d into a single sequence
+which respects the original ordering.
+Here is a very informal algorithm for a recursive version:
+<PRE>
+To merge two sorted sequences : 
+        If    the first sequence is empty,
+              then throw it away and return the second sequence.
+        If the second sequence is empty,
+              then throw it away and return the first sequence.
+        (Both sequences are non-empty, so both have a first element:)
+        If the first of the first sequence is less than the first of the second,
+              then    set the lesser element aside,
+                      recurse using the rest of the first sequence,
+                      prepend the previously set aside element.
+        If the first of the first sequence is greater than the first of the second,
+              then set the lesser element aside,
+                      recurse using the rest of the second sequence,
+                      prepend the previously set aside element.
+       (The two first elements of the sequences are equal:)
+        Default  
+              set both first elements aside,
+              recurse using the rests of both sequences,
+              prepend the two previously set aside elements.
+</PRE>
+<P>
+Like just about all programming languages,
+Joy has an if-then-else construct (<CODE>ifte</CODE>)
+for two-way branching.
+Multiway branching can be achieved by
+nested <CODE>ifte</CODE>s, but this can become difficult to read.
+Joy has another combinator for multi-way branching
+borrowed from Lisp.
+The combinator <KBD>cond</KBD>
+expects one parameter which is a list of cases.
+The last case is the default case,
+the other cases each consist of a condition or if-part
+and a program or then-part
+The condition is a quoted program
+in front of the program.
+Execution of the <CODE>cond</CODE> combinator
+tests successive conditions,
+and for the first condition that yields
+<CODE>true</CODE> the associated program is executed.
+If none of the conditions is true,
+the default case is executed.
+The informal algorithm given earlier
+now translates into the following recursive definition
+of <KBD>r-merge</KBD>:
+<PRE>
+    r-merge  ==
+        [ [ [null] pop]
+          [ [pop null] swap pop]
+          [ [unswons2 <] [uncons] dip r-merge cons]
+          [ [unswons2 >] uncons swap23 r-merge cons]
+          [ uncons2 r-merge cons cons] ]
+        cond
+</PRE>
+<P>
+As may be seen from the earlier informal version
+and the above Joy version,
+for each case the program recurses at most once.
+Therefore the program has the pattern of <EM>linear recursion</EM>.
+However, because there are three cases in which
+recursion occurs,
+it is not possible to use the <CODE>linrec</CODE> combinator.
+However, Joy has a combinator <KBD>condlinrec</KBD>
+which has features of <CODE>cond</CODE> and <CODE>linrec</CODE>.
+The combinator <CODE>condlinrec</CODE> also expects
+one parameter which is a list of cases.
+Again the last case is the default case,
+and the other cases consist of a list of two or three quoted programs.
+If there are just two parts,
+then they are called the if-part and the then-part.
+Their meaning is as for <CODE>cond</CODE>.
+If there are three parts,
+then they are called the if-part, the rec1-part and the rec2-part.
+In that case linear recursion occurs between execution
+of the rec1-part and the rec2-part.
+The following is a non-recursive definition
+of <KBD>merge</KBD>:
+<PRE>
+    merge ==
+        [ [ [null] [pop] ]
+          [ [pop null] [swap pop] ]
+          [ [unswons2 <] [[uncons] dip] [cons] ]
+          [ [unswons2 >] [uncons swap23] [cons] ]
+          [ [uncons2] [cons cons] ] ]
+        condlinrec;
+</PRE>
+<P>
+<P>
+Sometimes it is necessary to merge two lists of aggregates
+on the basis of their first elements.
+In that case the comparisons <CODE><</CODE> and <CODE>></CODE>
+should not be applied to the elements of the sequences
+but to their first members.
+A simple solution is to replace the two comparisons
+respectively by the following two:
+<PRE>
+        [first] app2 <              [first] app2 >
+</PRE>
+So the definition of the <KBD>merge1</KBD> operator could be
+<PRE>
+    merge1 ==
+        [ [ [null] [pop] ]
+          [ [pop null] [swap pop] ]
+          [ [unswons2 [first] app2 <] [[uncons] dip] [cons] ]
+          [ [unswons2 [first] app2 >] [uncons swap23] [cons] ]
+          [ [uncons2] [cons cons] ] ]
+        condlinrec
+</PRE>
+The definition of <CODE>merge</CODE>
+(and especially <CODE>merge1</CODE>) could be
+optimised so that the <CODE>unswons</CODE> (and the <CODE>first</CODE>)
+is not done repeatedly for each comparison.
+As the definitions stand, they are easy to understand
+and work correctly.
+<H1>Big sets and dictionaries</H1>
+<P>
+Computer words are short bit-sequences
+and a common size is 32.
+These can be used to implement small sets of small numbers 0..31,
+with a few common set operations implemented in hardware.
+Joy uses this in its <EM>set type</EM>.
+But often it is necessary to have either much larger sets
+or sets of larger elements.
+Such a <EM>big set type</EM>
+can be implemented in various ways:
+as unordered lists, as ordered lists,
+as unbalanced trees or as balanced trees.
+Each implementation method has its advantages and disadvantages.
+The following implementation
+of big sets in terms of ordered lists has been adapted from
+\AX{Bird and Wadler}{1988 p 230 ff}{Bird:88}.
+<P>
+The empty set is represented as an empty list,
+in this library it is written as <KBD>bs-new</KBD>.
+<PRE>
+LIBRA (* big sets *)
+
+bs-new == [];
+</PRE>
+<P>
+One very important binary set operation is <EM>union</EM>.
+The two parameters are sorted lists,
+and the returned value also has to be
+a sorted list.
+It would appear that the two lists should be simply
+<KBD>merge</KBD>d.
+But if they have an element in common,
+then the returned list would then contain
+the element twice.
+However, in sets any element should occur at most once.
+This consideration affects the default case, the last case
+of the program list which is the parameter.
+The case occurs when the first elements of the
+two parameter lists are equal.
+So in the definition of <KBD>bs-union</KBD>
+instead of saving and later restoring both,
+only one is saved and later restored.
+<PRE>
+bs-union ==
+        [ [ [null] [pop] ]
+          [ [pop null] [swap pop] ]
+          [ [unswons2 <] [[uncons] dip] [cons] ]
+          [ [unswons2 >] [uncons swap23] [cons] ]
+          [ [rest [uncons] dip] [cons] ] ]
+        condlinrec;
+</PRE>
+<P>
+The same situation arises for <EM>insert</EM>ing or adding
+a new member to a set.
+If the new member is already in the set,
+then it should not be inserted again.
+So if the first member of the current list is
+equal to the candidate new member,
+then the candidate is just popped off in the third line below.
+In the definition of <KBD>bs-insert</KBD>
+the only recursion occurs in the last, the default case.
+<PRE>
+bs-insert ==
+        [ [ [pop null] [swons] ]
+          [ [[first] dip >] [swons] ]
+          [ [[first] dip =] [pop] ]
+          [ [[uncons] dip] [cons] ] ]
+        condlinrec;
+</PRE>
+<P>
+The next operator tests for <EM>member</EM>ship,
+so it must return a truth value.
+If the list is null or its first element
+is <CODE>></CODE> than the candidate,
+then <CODE>false</CODE> is returned.
+If the first element is <CODE>=</CODE> to the candidate,
+then <CODE>true</CODE> is returned.
+In the default case, when the relation is <CODE><</CODE>,
+the list has to be inspected recursively further down.
+So the case must contain two programs to effect
+the recursion.
+However, on the way back from the recursion,
+the last returned truth value is the one to be used.
+Hence no further action is required,
+and the second program is just <CODE>[]</CODE>.
+This is the definition of <KBD>bs-member</KBD>:
+<PRE>
+bs-member ==
+        [ [ [pop null] [pop2 false] ]
+          [ [[first] dip >] [pop2 false] ]
+          [ [[first] dip =] [pop2 true] ]
+          [ [[rest] dip] [] ] ]
+        condlinrec;
+</PRE>
+<P>
+The same device is used in the default case of the definition of <KBD>bs-differ</KBD>
+for finding the <EM>difference</EM> between two sets.
+As may be seen, there are two further recursive cases,
+for <CODE><</CODE> and <CODE>></CODE>, and one of them uses the same device again.
+<PRE>
+bs-differ ==
+        [ [ [null] [pop]]
+          [ [pop null] [pop pop []] ]
+          [ [unswons2 <] [[uncons] dip] [cons] ]
+          [ [unswons2 >] [rest] [] ]
+          [ [[rest] dip rest] [] ] ]
+        condlinrec;
+</PRE>
+<P>
+The next definition is for <KBD>bs-delete</KBD>,
+it <EM>delete</EM>s a specified member from a set,
+if it is a member at all.
+The only recursive case is the default case.
+<PRE>
+bs-delete ==
+        [ [ [pop null] [pop] ]
+          [ [[first] dip >] [pop] ]
+          [ [[first] dip =] [pop rest] ]
+          [ [[uncons] dip] [cons] ] ]
+        condlinrec.
+</PRE>
+<P>
+The operations of inserting or deleting members
+into or from a set are essentially special cases
+of taking unions or differences with unitsets.
+So the following definitions might have been given
+instead of the earlier, more efficient definitions:
+<PRE>
+    bs-insert  ==  unitlist bs-union;
+    bs-delete  ==  unitlist bs-differ;
+</PRE>
+<P>
+A dictionary is a way of implementing finite functions
+as argument-value pairs.
+A pair is best implemented in Joy as a two element list.
+The totality of pairs is then essentially a big set,
+and any of the ways of implementing these is suitable here.
+If the argument part of pairs is subject to an ordering relation,
+the sets of pairs can be implemented as
+lists ordered in accordance with the first element,
+the argument of the pairs.
+Not surprisingly then,
+some of the code to follow is reminiscent
+of code for <CODE>qsort1</CODE> and <CODE>merge1</CODE>.
+The following is a library for the <EM>dictionary type</EM>.
+A new dictionary is created by <KBD>d-new</KBD>.
+A predicate <KBD>d-null</KBD> returns <CODE>true</CODE> or <CODE>false</CODE>
+according as the parameter dictionary is empty or not.
+New pairs are added by <KBD>d-add</KBD>,
+they are inserted in the correct place based on the ordering
+of the first member of the pairs.
+The union or difference of two dictionaries
+is given by the two binary operators <KBD>d-union</KBD> and <KBD>d-differ</KBD>.
+A single pair is removed by the binary operator <KBD>d-rem</KBD>,
+it removes the pair whose first member matches the given query
+parameter.
+Instead of a test for membership there is a binary operator
+<KBD>d-look</KBD> which extracts the first pair whose first element
+matches the query.
+<P>
+Only the program for one of the operators will be developed here,
+the program for <KBD>d-union</KBD>:
+<PRE>
+To form the union of two dictionaries D1 and D2:
+1       If D2 is empty, pop it off and return just D1
+2       If D1 is empty, retain D2, pop D1 and return D2
+3       Extract    the first pairs from D1 and D2,
+                   from both pairs compare their firsts with <
+        If the comparison is true,
+                   below D2, uncons D1 into its first
+                   and rest
+                   recurse anonymously on the rest of D1 and D2
+                   cons the saved first pair from D1
+                   into the result
+4       Extract    the first pairs from D1 and D2,
+                   from both pairs compare their firsts with >
+        If the comparison is true,
+                   uncons D2, put its first below D2
+                   recurse anonymously on D1 and the rest of D2
+                   cons the saved first pair from D2
+                   into the result
+        Default (the firsts of the first pairs of D1 and D2
+                    are =):
+                   uncons both D1 and D2 into their
+                   first and rest,
+                   recurse on the two rests to form their union,
+                   cons the two saved firsts into the result.
+</PRE>
+In the default case both first pairs are retained,
+so that if one is deleted,
+the other one, which may well have a different second component,
+is still available.
+<P>
+As may be seen, the <KBD>d-union</KBD> operator is
+very similar to the <CODE>bs-union</CODE> operator.
+The other three operators <KBD>d-differ</KBD>, <KBD>d-look</KBD> and <KBD>d-rem</KBD>
+are similar to their counterparts for big sets.
+The entire library is the following:
+<PRE>
+LIBRA (* dictionary *)
+
+d_new   == [];
+d_null  == null;
+d_add   ==
+        [ [ [pop null] [swons] ]
+          [ [[first] dip [first] app2 >=] [swons] ]
+          [ [[uncons] dip] [cons] ] ]
+        condlinrec;
+d_union ==
+        [ [ [null] [pop] ]
+          [ [pop null] [popd] ]
+          [ [unswons2 [first] app2 <] [[uncons] dip] [cons] ]
+          [ [unswons2 [first] app2 >] [uncons swap23] [cons] ]
+          [ [uncons2] [cons cons] ] ]
+        condlinrec;
+d_differ ==
+        [ [ [null] [pop]]
+          [ [pop null] [pop pop []] ]
+          [ [unswons2 [first] app2 <] [[uncons] dip] [cons] ]
+          [ [unswons2 [first] app2 >] [rest] [] ]
+          [ [[rest] dip rest] [] ] ]
+        condlinrec;
+d_look  == [dup] dip
+        [ [ [pop null] [pop pop "not found"] ]
+          [ [[first first] dip >] [pop pop "not found"] ]
+          [ [[first first] dip =] [pop first] ]
+          [ [[rest] dip] [] ] ]
+        condlinrec;
+d_rem   ==
+        [ [ [pop null] [pop] ]
+          [ [[first first] dip >] [pop] ]
+          [ [[first first] dip =] [pop rest] ]
+          [ [[uncons] dip] [cons] ] ]
+        condlinrec.
+</PRE>
+The definitions of big sets and dictionaries are part
+of the library file <KBD>TYPLIB.JOY</KBD>.
+<H1>Trees</H1>
+<P>
+Apart from the <EM>aggregate type</EM>s it is useful to have another
+type, the <EM>tree type</EM>.
+These are lists
+which can contain lists as members which might contain lists as
+members and so on.
+Formally define a <EM> leaf</EM> to be anything which is not a list.
+Then a <EM> tree</EM> is defined to be either a leaf or a list of trees.
+Sometimes one needs the concept of a <EM> proper tree</EM> --
+this is just a list of trees.
+Trees are similar to other aggregates,
+but since the tree datatype is recursive,
+a special treatment is generally needed.
+<P>
+Just as there is the <CODE>step</CODE> combinator to step
+through the elements of an aggregate,
+so there is a <KBD>treestep</KBD> combinator to step
+through the leaves of a tree.
+For example,
+the following are the already familiar program
+for computing the sum of the numbers in an aggregate
+and a similar program for computing the sum
+of the numbers in a tree:
+<PRE>
+            sum  ==  0 swap [+]     step
+        treesum  ==  0 swap [+] treestep
+</PRE>
+In the same way,
+the following are a familiar program and a new one
+for determining the <CODE>size</CODE> of an aggregate
+and the <KBD>treesize</KBD> of a tree:
+<PRE>
+            size  ==  0 swap [pop succ]     step
+        treesize  ==  0 swap [pop succ] treestep
+</PRE>
+Similarly,
+the following are a familiar program and a new one
+for shunting members of an aggregate or a tree, respectively,
+into an initially empty list:
+<PRE>
+            shunt  ==  [swons]     step
+        treeshunt  ==  [swons] treestep
+</PRE>
+For the binary operator <KBD>treeshunt</KBD>
+the all leaves will appear in the result list,
+but in reverse order.
+<P>
+A tree may be flattened completely,
+losing its entire internal structure
+but retaining the order of the leaves
+by the unary operator
+<KBD>treeflatten</KBD>:
+<PRE>
+        treeflatten  ==  [] swap treeshunt reverse
+</PRE>
+<P>
+From a given tree we can obtain the reverse list of
+its leaves by
+<PRE>
+        []  swap  treeshunt
+</PRE>
+But this may not be what is wanted.
+To reverse the tree while retaining its structure
+it is necessary to reverse the top level list,
+reverse the second level lists, reverse the third level lists and so on.
+For tasks such as this Joy has a ternary combinator <KBD>treegenrec</KBD>
+for general recursion through trees.
+It is used like this:
+<PRE>
+        [O1]  [O2]  [C]  treerecgen
+</PRE>
+Here <CODE>[O1]</CODE> must be a program applicable to leaves,
+<CODE>[O2]</CODE> must be an operator applicable to lists,
+and <CODE>[C]</CODE> must be a combinator
+applicable to lists with operators such as <CODE>[O2]</CODE>.
+Different choices of the three quotation parameters
+yield surprisingly different operators for trees
+or combinators applicable to trees.
+Using this combinator the unary <KBD>treereverse</KBD> operator
+is defined by
+<PRE>
+        treereverse  ==  [] [reverse] [map] treegenrec
+</PRE>
+<P>
+The same <CODE>treegenrec</CODE> combinator can be used to define
+a unary combinator <KBD>treemap</KBD> which takes a tree and quoted program
+as parameters and returns a tree of the same structure
+but with each leaf as modified by the program parameter.
+<PRE>
+        treemap  ==  [] [map] treegenrec
+</PRE>
+<P>
+The same combinator can be used to define a unary combinator
+<KBD>treefilter</KBD> which expects a tree and a quoted predicate.
+What is returned is a tree of the same structure but with
+only those leaves which pass the test predicate.
+<PRE>
+        treefilter  ==  [] swap orlistfilter [map] treegenrec
+</PRE>
+The first portion, <CODE>[] swap</CODE>
+just inserts the required <CODE>[O1]</CODE> which in this case
+does nothing.
+Following that is a modification of the test predicate,
+to be explained presently.
+The rest of the definition is familiar.
+<PRE>
+        treefilter  ==  [] swap orlistfilter [map] treegenrec
+</PRE>
+The <CODE>[O2]</CODE> operator to be used here is constructed
+from the test predicate <CODE>[P]</CODE> by <KBD>orlistfilter</KBD>,
+which constructs
+<PRE>
+        [ [ [list] [P] disjoin ]  filter ]
+</PRE>
+The <CODE>orlistfilter</CODE> is defined in two steps:
+<PRE>
+        orlist  ==  [list] swap disjoin
+        orlistfilter  ==  orlist [filter] cons
+</PRE>
+An operator to remove all leaves from a tree,
+but retaining its list structure is <KBD>treestrip</KBD>,
+defined as follows:
+<PRE>
+        treestrip  ==  [list] treefilter
+</PRE>
+<P>
+Trees cannot have lists as leaves,
+but otherwise they are very flexible.
+In particular they can be used as queues.
+The following is a small collection of operations for
+manipulating trees when the focus is only on their leaves.
+A new empty tree is generated by <KBD>t-new</KBD>.
+A new leaf or a whole tree of leaves is added to an existing tree
+by the operator <KBD>t-add</KBD>;
+it always ensures that the tree is of a form suitable for the
+remaining operators.
+The tree predicate <KBD>t-null</KBD>
+tests whether the tree is empty.
+It first has to prepare the tree by
+ensuring that it does not consist of lists of lists and so
+on which ultimately only contain the empty list.
+Since this is also required by two other operators,
+the preparing is done by a hidden unary operator.
+Two other operator <KBD>t-front</KBD>
+and <KBD>t-rem</KBD>
+produce, respectively,
+the first leaf together with the remainder
+of the tree,
+or just the remainder of the tree after removing the first leaf.
+Both operators first have to check that the tree is non-empty;
+if it is, then an error is reported.
+A leaf or proper tree can be turned into a suitable form by <KBD>t-reset</KBD>.
+<P>
+The implementation is as follows.
+A proper tree is always a list,
+and an empty tree starts off by <KBD>t-new</KBD> as an empty list.
+Anything can be added by <KBD>t-add</KBD> to an existing tree,
+and this has to ensure that the result has a suitable standard form.
+The same is true for <KBD>t-reset</KBD> which firstmakes a copy of an existing tree.
+The other operators, <KBD>t-null</KBD>, <KBD>t-front</KBD> and <KBD>t-rem</KBD>
+all require the tree to be in a suitable standard form.
+This is done by <CODE>prepare</CODE> which is defined using <KBD>condlinrec</KBD>.
+If the tree is <CODE>null</CODE>, it is left as it is.
+If the <CODE>first</CODE> is <CODE>null</CODE>, then the <CODE>rest</CODE> is taken
+and <CODE>condlinrec</CODE> recurses.
+If the <CODE>first</CODE> of the <CODE>first</CODE> is a list,
+then that is <CODE>unswonsed</CODE>, <CODE>condlinrec</CODE> recurses
+and on return does nothing further.
+In all other cases the tree is left as it is.
+<PRE>
+HIDE                                                    (* tree *)
+    error        ==  "non-empty tree needed for" putchars putchars abort;
+    prepare      ==  [ [ [null] [] ]
+                     [ [first null] [rest] [] ]
+                     [ [first first list] [[unswons] infra] [] ]
+                     [ [] ] ]
+                     condlinrec
+IN
+    t-new        ==  [];
+    t-reset      ==  dup  unitlist unitlist;
+    t-add        ==  unitlist unitlist cons;
+    t-null       ==  prepare
+                     dup null;
+    t-front      ==  prepare
+                     [null]
+                     ["t-front\n" error]
+                     [dup first first]
+                     ifte;
+    t-rem        ==  prepare
+                     [null]
+                     ["t-rem\n" error]
+                     [unswons unswons [swons] dip]
+                     ifte
+END
+</PRE>
+<P>
+The definitions of trees is partof the library file <KBD>TYPLIB.JOY</KBD>.

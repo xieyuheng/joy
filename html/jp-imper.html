@@ -1,0 +1,709 @@
+<HTML>
+<HEAD>
+<TITLE>Imperative thinking in Joy</TITLE>
+<HEAD>
+<P>
+Joy is a purely functional language,
+and yet it is often useful to think in imperative mode
+when writing Joy programs.
+This rsults from the fact that Joy is based on the composition
+of functions, and not on the application of functions.
+This was first made explicit by Billy Tanksley (2000) in his
+preamble to the mailing group concatenative:<BR>
+<A HREF="http://groups.yahoo.com/group/concatenative">
+         http://groups.yahoo.com/group/concatenative</A><BR>
+<P>
+This note illustrates imperative thinking for five Joy programs.
+In the literature these are often written recursively.
+But they either are tail recursive or can be rewritten
+in a tail recursive form, possibly using accumulators.
+Consequently these programs can also be written in an imperative
+style without recursion but using loops.
+In this note the imperative version is used as the
+starting point which is then translated into purely functional Joy.
+<P>
+The first two programs are for computing the <STRONG>factorial</STRONG>
+and the <STRONG>Fibonacci</STRONG> functions.
+Both use the <STRONG>times</STRONG> combinator of Joy.
+The third and fourth program are for computing the
+greatest common divisor function <STRONG>gcd</STRONG>
+and the predicate for determining whether a number is <STRONG>prime</STRONG>.
+Both use the <STRONG>while</STRONG> combinator of Joy.
+The last program is a combinator for Newton's method
+of finding arguments for which a given function returns a zero value.
+The method works by starting with a guessed argument and improving it
+until it has the required magnitude.
+This Joy program also uses the <STRONG>while</STRONG> combinator.
+The method can also be used to compute inverses of functions,
+for example for finding cube-roots when given a cubing function.
+<P>
+All five programs were developed using corresponding Scheme
+programs in Abelson and Sussman (19??) as a guide.
+
+<H2>The <EM>times</EM> combinator for the <EM>factorial</EM> function</H2>
+The factorial function is often given a recursive definition
+to illustrate either recursion in general or definitions in
+a particular language.
+But it is well known that recursion is not necessary,
+and that at least a "tail-recursive" variant is more efficient.
+For a given positive integer N, the factorial of N is just
+the product of the first N positive integers.
+The product of no numbers should be the identity element for
+multiplication, so the factorial of 0 is set to 1.
+Hence for any non-negative N the factorial can be computed
+by a simple imperative program (here in a fantasy language):<BR>
+<PRE>
+
+    factorial(N) =
+	VAR P := 1
+	VAR I
+	FOR I := 1 TO N DO
+	    P := P * I
+        RETURN P
+</PRE>
+The upper limit N ensures that the body of the
+loop will be executed exactly N times.
+In addition, the FOR-loop will increment the variable I
+exactly as required.
+But we could do the incrementing explicitly:<BR>
+<PRE>
+
+    factorial(N) =
+	VAR P := 1
+	VAR I := 1
+	N TIMES DO
+	    P := P * I
+	    I := I + 1
+	RETURN P
+</PRE>
+To translate this into Joy, here is a first draft.
+The TIMES-loop will be executed by the times combinator of Joy.
+The body of the loop will need to be expressed in Joy,
+but we do that later.
+Before the loop there will need to be some initialisation
+corresponding to the imperative program.
+And after the loop there will need to be some finalisation
+corresponding to the RETURN.<BR>
+<PRE>
+    factorial  ==
+	"initialise"
+	[ "body of loop" ]
+	times
+	"finalise"
+</PRE>
+A call to the factorial function will be of the form<BR>
+<PRE>
+	N  factorial
+</PRE>
+where the N will have to be available for the times combinator.
+That means that the simulation initialisation of the two
+variables P and I will have to be below the N.
+In the imperative program both were initialised to 1.
+So below the parameter N there will need to be two further
+stack elements, both 1, that are pushed under the control of
+the dip combinator.
+Hence the initialisation is:<BR>
+<PRE>
+	[ 1 1 ]  dip
+</PRE>
+The body of the Joy loop has to do what the body of
+the imperative loop does:<BR>
+<PRE>
+	    P := P * I
+	    I := I + 1
+</PRE>
+The counterpart of P has to be multiplied by the counterpart of I,
+but there has to be another copy of I available to be incremented by 1.
+So the body of the Joy loop has to start with a dup operator to
+make that copy.
+Then thecounterpart of P has to be multiplied by the original
+counterpart of I, and this has to occur below the new copy of
+the counterpart of I.
+That is easily done by the combination [*] dip.
+Finally, corresponding to the incrementing of I,
+the successor of the top element is taken.
+Hence the body of the Joy loop is<BR>
+<PRE>
+	dup  [*]  dip  succ
+</PRE>
+The loop is executed N times, and when that is done the
+imperative program returns P, whose counterpart is the second
+element from the top of the stack.
+So the finalisation of the Joy program is<BR>
+<PRE>
+	pop
+</PRE>
+Putting the three pieces together, we have the definition<BR>
+<PRE>
+    factorial  ==
+	[1 1] dip
+	[ dup [*] dip succ ]
+	times
+	pop
+</PRE>
+This completes the Joy program.
+In the Joy library numlib.joy it is just a one-liner:<BR>
+<PRE>
+    fact == [1 1] dip [dup [*] dip succ] times pop;
+</PRE>
+
+<H2>The <EM>times</EM> combinator for the <EM>Fibonacci</EM> function</H2>
+<P>
+The Fibonacci function is also often given a recursive definition,
+generally just to test efficiency of an implementation
+because a non-recursive definition would be more efficient.
+The usual recursive definition is inefficient because
+the same values have to be computed many times over.
+The following is a design of a non-recursive version.
+<P>
+The Fibonacci function for the first two natural numbers
+0 and 1 as arguments has the values 0 and 1,
+and for any larger numbers as arguments
+it values is just the sum of its values for the two
+preceding numbers.
+The following gives the arguments and the values:<BR>
+<PRE>
+        arguments     0   1   2   3   4   5   6   7   8   ...
+        values        0   1   1   2   3   5   8  13  21   ...
+</PRE>
+Note that to compute the later values
+only the values for the <EM>two</EM> preceding
+numbers are needed.
+This helps in the following consideration,
+where the values are now arranged in a staircase:<BR>
+<PRE>
+        arguments     values
+                0     0   1
+		1         1   1
+		2             1   2
+		3                 2   3
+		4                     3   5
+		5                         5   8
+		6                             8  13
+</PRE>
+Each step of the staircase consists of two numbers, the left and the
+right, hereafter called L and R.
+Three observations can be made:
+(1) In the first, topmost step L and R are respectively the
+Fibonacchi values for 0 and 1.
+(2) The two numbers L and R of any step other than the first
+are obtained from the L and R of the preceding step -
+the two numbers L and R are interchanged and then a new R
+is obtained by adding L to it.
+(3) The Fibonacci value of N is on the N-th step from the top
+in the L number.
+The three observations suffice for the following program.
+Again it uses a TIMES-loop to execute (2)
+as often as required by the parameter N.<BR>
+<PRE>
+    fibonacchi(N) =
+	VAR L := 0
+	VAR R := 1
+	N TIMES DO
+	    L =:= R
+	    R := L + R
+	RETURN L
+</PRE>
+The mutual assignment operator "=:=" swaps the values
+of the two variables.
+It might be implemented instead by<BR>
+<PRE>
+	TEMP := L; L := R; R ;= TEMP
+</PRE>
+<P>
+The program translates readily into Joy.
+A call to the Joy program will be of the form<BR>
+<PRE>
+	N  fibonacci
+</PRE>
+and hence the N will have to be available for the times loop.
+So the initialisation has to take place just below
+the parameter N, with<BR>
+<PRE>
+	[0  1]  dip
+</PRE>
+Now the N will be consumed by the times combinator,
+and that will expose two numbers corresponding
+to the values of L and R, with the value of R topmost.
+The times combinator requires a quotation
+which corresponds to the body of the imperative TIMES loop.
+The quotation has to swap the two numbers on top of the stack,
+and then replace the top value by two sum of the two,
+but without consuming the second value.
+This replacement can be done by [+] unary.
+So the quotation required is<BR>
+<PRE>
+	[ swap  [+]  unary ]
+</PRE>
+Finally, the value to be returned is what corresponds to
+L in the imperative program, and that is the second value
+from the top of the stack. So the finalisation is simply<BR>
+<PRE>
+	pop
+</PRE>
+<P>
+Putting the pieces together, this is the definition:<BR>
+<PRE>
+    fibonacchi  ==
+         [1 0] dip
+         [swap [+] unary]
+         times
+         pop
+</PRE>
+In the Joy library numlib.joy this is also just a one-liner:<BR>
+<PRE>
+    fib == [1 0] dip [swap [+] unary] times pop;
+</PRE>
+<H2>The <EM>while</EM> combinator for the <EM>gcd</EM> function</H2>
+The greatest common divisor (gcd) of two natural numbers is that number
+which divides the two given numbers without remainder.
+Euclid's famous algorithm for finding the gcd is based on the
+observation that<BR>
+<PRE>
+	gcd(I,J)   ==   gcd(J, I rem J)
+</PRE>
+where <KBD>I rem J</KBD> is the remainder of dividing I by J.
+For J = 0 the gcd is I.
+The steps for finding the gcd of 48 and 90 are:<BR>
+<PRE>
+	     step     values
+	        1     48  90
+		2         90  48
+		3             48  42
+		4                 42   6
+		5		       6   0
+</PRE>
+Again there is a staircase with two values on each step,
+hereafter L and R.
+The first step consists of the two arguments.
+On every succeeding step L is what was the  R of the preceding step,
+and the R is L rem R of the preceding step.
+This might be written in an imperative language with a WHILE-loop as<BR>
+<PRE>
+    gcd(L, R)  =
+	VAR TEMP
+	WHILE R > 0 DO
+	    TEMP := R
+	    R := L rem R
+	    L := TEMP
+	RETURN L
+</PRE>
+The program might even be written without the TEMP
+variable but with mutual assignment like this:<BR>
+<PRE>
+    gcd(L, R)  =
+	WHILE R > 0 DO
+	    L := L rem R
+	    L =:= R
+	RETURN L
+</PRE>
+We now have to translate this into Joy.
+The call to the gcd program in Joy will look like this:<BR>
+<PRE>
+	48  90  gcd
+</PRE>
+Joy has a while combinator with takes two quotation
+parameters, a while-part and a do-part.
+The structure of the program will be<BR>
+<PRE>
+    gcd  ==
+	[ "while-part" ]
+	[ "do-part" ]
+	while
+	"finalise"
+</PRE>
+So the while-part will have to test whether the
+number on top of the stack is positive,
+and that is done with the quotation<BR>
+<PRE>
+	[ 0 > ]
+</PRE>
+The do-part will have to take the two parameters
+on top of the stack and simulate the effect of the
+assignment statements of one or the other of the imperative versions.
+(1) The top element on the stack will have to become
+the result of the rem operation.
+(2) The second element on the stack will have to
+be what was the first element.
+Since the rem operattion in (1) consumes the top element,
+but (2) needs it, that top element will have to be saved
+by a dup (similar to using the TEMP).
+After the dup the second and third element
+will have to available for the rem operation,
+and below the result of that will have to be
+the saved or duplicated first element.
+So before the rem the top three elements
+have to be shuffled by rollup,
+which moves the second and third element up by one
+and the first element down by two.
+Thus the do-part is<BR>
+<PRE>
+	[ dup  rollup  rem ]
+</PRE>
+The finalisation of course just pops off the 0 which
+is now on top of the stack.
+<P>
+So the entire definition is:<BR>
+<PRE>
+    gcd  ==
+	[ 0 >]
+	[ dup rollup rem ]
+	while
+	pop
+</PRE>
+In the Joy library numlib.joy this is also just a one-liner:<BR>
+<PRE>
+    gcd == [0 >] [dup rollup rem] while pop;
+</PRE>
+
+<H2>The <EM>while</EM> combinator for the <EM>prime</EM> predicate</H2>
+<P>
+One number N has another D as a divisor if and only if
+N divided by D leaves no remainder, or a remainder of 0.
+A number N has a proper divisor D if and only if
+N has a divisor D where D is other than 1 or N.
+A number N is prime if and only if it has no proper divisors.
+If a number is not prime, then it has a
+proper divisor D no greater than the square root of N,
+or equivalently the square of D is no greater than N.
+<P>
+So, given a number N,
+the search for a proper divisor could start with a test
+integer T = 2 and go up to that value of T for which
+N is greater than the square of T.
+During each step a test needs to be made
+to determine whether the remainder of dividing N by T is positive.
+After each step T is incremented.
+The loop continues while
+N is greater than the square of T AND T is not a divisor of N.
+The loop stops when the preceding conjunction becomes false.
+Since there are two conjuncts, there are two possible
+reasons why the conjunction has become false.
+If the second conjunct fails then N is not prime,
+even if the first conjunct, N > T * T, is true.
+On the other hand, if the first conjunct failed,
+then T has already been incremented beyond the search range
+and hence N is prime.
+So N is prime if and only if the loop has terminated with N < T * T.
+This algorithm can be expressed in an imperative language as:<BR>
+<PRE>
+    prime(N) =
+	VAR T := 2
+	WHILE (N > T * T) AND (N rem T > 0) DO
+	    T := T + 1;
+	RETURN N < T * T
+</PRE>
+<P>
+The program translates well into Joy.
+Clearly it must have the structure<BR>
+<PRE>
+    prime ==
+	"initialise"
+	[ "termination-conjunction" ]
+	[ "increment-test-value" ]
+	while
+	"finalise"
+</PRE>
+It is important that the conjunction and the incrementation
+of the loop be done efficiently.
+This affects whether the initial test value 2 should be
+inserted above or below the given number on top of the stack.
+Individually the two conjuncts for the termination are
+best written as<BR>
+<PRE>
+	dup * >
+	rem 0 >
+</PRE>
+which suggests that the test value is above the argument.
+Hence the initialisation should simply push the inital test value 2.
+Also,  the test value should remain above the argument,
+and the incrementing is done simply by the succ operator.
+But the termination has to be a conjunction of the two
+conjuncts above, so they have to produce a truth value
+each which are then conjoined by the and operator.
+One way is to use the nullary combinator on the first
+conjunct to produce the first truth value
+without using up the two arguments.
+Then the two arguments can be used for the other conjunct
+with the dip combinator.
+So the entire termination conjunction is<BR>
+<PRE>
+	[ [dup * >] nullary  [rem 0 >] dip  and ]
+</PRE>
+The finalisation translates easily from the imperative program:<BR>
+<PRE>
+	dup  *  <
+</PRE>
+<P>
+So the entire program is as follows,
+as it appears in the library numlib.joy:<BR>
+<PRE>
+    prime ==
+	2
+	[ [dup * >] nullary  [rem 0 >] dip  and ]
+	[ succ ]
+	while
+	dup * < ;
+</PRE>
+
+<H2>The <EM>while</EM> combinator for the <EM>newton</EM> combinator</H2>
+<P>
+Given a differentiable function F of one variable,
+one sometimes needs to find its roots, those values x
+for which F(x) = 0.
+One famous method, due to Newton, is the following:
+Start with a guess G for what that value x might be.
+Compute F(G), and if that is close enough to zero,
+take G to be the solution.
+Otherwise, use the current guess and the function F
+to find a better guess.
+Repeat this process until the latest guess is acceptable.
+This is essentially a WHILE loop.
+<P>
+So Newton's method is a general algorithm which takes
+two parameters, an initial guess G and a function F.
+In imperative style an outline is this:<BR>
+<PRE>
+    newton(G,F) =
+	WHILE "F(G) is not close enough to 0" DO
+	    "Use F and G to find a new G"
+	RETURN G
+</PRE>
+For the WHILE-part it is necessary to specify a criterion
+for what counts as close enough to 0.
+Some small value can be built into the algorithm.
+It is also possible to make the value a further parameter.
+For simplicity this version will select the value 0.0001
+hardwired into the program.
+Since the function F can return a positive or a negative
+value for the current guess,
+it is necessary to take the absolute value instead.
+So the refinement for the WHILE-part is this:<BR>
+<PRE>
+	abs(F(G)) > 0.0001
+</PRE>
+The DO-part is more complicated.
+To find a better guess, it is necessary use the old guess
+to determine whether the new guess should be larger or smaller,
+and by how much.
+In Newton's method the slope of the function F at the old guess
+is used.
+The new guess is then computed by subtracting from the old guess
+a value that depends on (1) the value of F at the old guess,
+and (2) the slope of F at the old guess.
+It is the slope that determines how close the new guess
+will be to the old guess.
+The slope of F at the old guess is of course
+the value of the derivative of F, which might be written as deriv(F).
+So the DO-part refines to<BR>
+<PRE>
+	G  :=  G - F(G)/deriv(F,G)
+</PRE>
+Combining the parts the imperative version
+of Newton's method is the following.<BR>
+<PRE>
+    newton(G,F) =
+	WHILE  abs(F(G)) > 0.0001  DO
+	    G   :=  G  -  F(G)/deriv(F,G)
+	RETURN G
+</PRE>
+For the derivative of the function F we again have to select
+a small number - ideally "infinitesimal" - say 0.001.
+Then F has to be applied to two values, x plus 0.001
+and x. The difference between the two results is divided by
+0.001 to get an approximation to the true slope of F at x.
+A definition might look like this:<BR>
+<PRE>
+    deriv(F,x) =
+	(F(x + 0.001) - F(x)) / 0.001
+</PRE>
+The imperative newton program and the second order derivative
+function are now to be translated into Joy.
+It so turns out that the derivative of a function F is
+useful elsewhere.
+The most general form would be one which takes as a parameter
+a quotation, say [F], and which returns a quotation [D].
+Both quotations would have to compute unary functions,
+and either quotation would be used by some combinator,
+quite possibly the i combinator.
+From the above formula we see that F is to be applied separately
+to two arguments, firstly to x + 0.001, and secondly to just x alone.
+Since x is needed twice, the argument has to be duplicated,
+and the small value 0.001 added to one of them.
+That is essentially<BR>
+<PRE>
+	dup  0.001  +
+</PRE>
+After the given quotation [F] has been applied to these two
+arguments, their difference has to be divided by 0.001.
+But the difference has to be computed in the right order,
+so a swap is needed before the subtraction.
+This fragment of the program thus is:<BR>
+<PRE>
+	app2  swap  -  0.001  /
+</PRE>
+A call to the derivative program takes a parameter [F] as argument
+and it produces another quotation:<BR>
+<PRE>
+	[F]  deriv   ==> [ dup 0.001 + [F] app2 swap - 0.001 / ]
+</PRE>
+The required quotation is constructed from [F] by the
+following program:<BR>
+<PRE>
+    deriv == [app2 swap - 0.001 /] cons  [dup 0.001 +] swoncat;
+</PRE>
+For example, the value of the derivative of the cube function
+for the argument 3.14 can be computed by<BR>
+<PRE>
+	3.14   [ dup dup * * ]  deriv  i     ==>     29.5882
+</PRE>
+<P>
+We now return to the construction of the newton program.
+The functional argument F will be a quotation,
+and the guess argument will be a number.
+Since the Joy program takes a quotation as an argument,
+it is really a combinator,
+and combinators generally expect the quotation to be
+on top of the stack, and any further arguments below.
+So a call to the Joy program newton will normally take
+the form<BR>
+<PRE>
+	G  [F]  newton
+</PRE>
+When the program exits it must leave behind a number on top
+of the stack which could be fed into F to yield a small
+number very close to zero,<BR>
+<PRE>
+	G  [F]  newton  F            ==>   0  (+/- 0.0001)
+</PRE>
+The Joy program will have the structure<BR>
+<PRE>
+    newton ==
+	"initialise"
+	[ "while-part" ]
+	[ "do-part" ]
+	while
+	"finalise"
+</PRE>
+The do-part will require the quotation [F] and another quotation [D]
+for computing the derivative at the current guess.
+The quotation [D] is best constructed once and for all,
+and of course it needs to be constructed from [F].
+This has to be done in the initialisation,
+so before the loop is entered and after it exits the stack
+looks like this:<BR>
+<PRE>
+	G  [F]  [D]
+</PRE>
+with [D] topmost.
+When the loop exits the [F] and [D] quotations are no longer
+needed, and the stack element below them is the value to be
+returned.
+This already settles the finalistion:<BR>
+<PRE>
+	pop  pop
+</PRE>
+In the initialisation the [D] quotation has to be constructed from
+the [F] parameter using the deriv program.
+Now the initialisation can bewritten quite simply as<BR>
+<PRE>
+	dup  deriv
+</PRE>
+The while-part has to determine whether the current guess,
+the third element from the top of the stack, when supplied as an
+argument to F, gives a value close enough to zero.
+The first element on the stack is actually the quotation [D],
+so that has to be popped off.
+Below that are [F] and the current guess, just in the right
+order for the i combinator.
+The result value might be positive or negative, so
+the absolute value is taken and compared with 0.0001.
+So the transliteration of the imperative program
+gives the following while-part for the Joy program:<BR>
+<PRE>
+	[ pop i abs 0.0001 > ]
+</PRE>
+The do-part is more complicated than that.
+This is partly because the computation of the new guess
+has to use the two quotations [F] and [G]
+but also retain them for possible further use.
+Another reason is that, as can be seen from the DO-part
+of the imperative version,
+the current guess is needed three times to compute the new guess.
+It so turns out that it only has to be duplicated once,
+but that has to be done below the [F] and the [D],
+by [[dup] dip] dip, or equivalently by<BR>
+<PRE>
+	[ dupd ]  dip
+</PRE>
+Following that, the two quotations [F] and [D] have to be
+duplicated for future use by a special duplication operator dup2.
+So the stack at this point looks like this:<BR>
+<PRE>
+	guess  guess  [F]  [D]  [F]  [D]
+</PRE>
+After these preliminaries the new guess has to be computed
+so that afterwards the stack looks like this:<BR>
+<PRE>
+	newguess  [F]  [D]
+</PRE>
+in readiness for possibly another sweep through the loop.
+Following the assignment statement of the
+imperative version,
+the quotations [F] and [D] can be applied to the uppermost
+copy of current guess to produce two values whose ratio
+is to be subtracted from the lower copy of the current guess.
+The result is the new guess:<BR>
+<PRE>
+	cleave  /  -
+</PRE>
+But the preceding fragment has to be executed below the
+two quotations [F] and [D] that were saved for possible later use.
+So the fragment has to be executed under the control of a double dip:<BR>
+<PRE>
+	[ [cleave / -]  dip]
+	dip
+</PRE>
+This concludes the design of the do-part, which
+now is the following:<BR>
+<PRE>
+	[ [dupd] dip
+	  dup2
+	  [[cleave / -] dip]
+	  dip ]
+</PRE>
+Finally, assembling the initialisation,
+the while-part, the do-part and the finalisation we
+have the entire newton program
+as it appears in the numlib.joy standard library.<BR>
+<PRE>
+    newton ==		(*  Usage: guess [F] newton		*)
+	dup deriv		(* guess [F] [D]		*)
+	[ pop i abs 0.0001 > ]	(* too big ?			*)
+	[ [dupd] dip      	(* guess guess [F] [D]		*)
+	  dup2			(* guess guess [F] [D] [F] [D]	*)
+	  [[cleave / - ] dip]
+	  dip  ]		(* newguess [F] [D]		*)
+	while
+	pop pop;
+</PRE>
+<P>
+Newton's algorithm finds arguments for which  given function
+has a value close to zero.
+It is easy enough to use the algorithm to find arguments
+for which the given function has a particular value other than zero.
+For such usage the desired particular value has to be subtracted
+from the value given by Newton's method.
+Also, a quite arbitrary initial guess has to be supplied.
+In this way Newton's method can be used to compute
+the inverse of a given function.
+In Joy the required program is<BR>
+<PRE>
+    use-newton == [[-] cons] dip  swoncat  1 swap newton;
+</PRE>
+For example, the cube-root function is the inverse of the
+cube function, and we can define<BR>
+<PRE>
+    cube-root == [dup dup * *] use-newton;
+</PRE>
+</HTML>

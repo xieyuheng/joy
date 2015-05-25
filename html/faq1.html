@@ -1,0 +1,369 @@
+<HTML>
+<HEAD>
+<TITLE>Further Frequently Asked Questions about Joy</TITLE>
+</HEAD>
+<BODY>
+Contents:
+<OL>
+<LI>"Why is == an infix operator ?"
+<LI>"But why can't definitions be entered at run-time ?"
+<LI>"What happens if one takes the first of [dup *] ?"
+<LI>"Why does Joy have all those recursion combinators ?
+     Why not just use plain explicit recursion ?"
+<LI>"So why don't other languages have recursion combinators ?"
+</OL>
+
+<H2>1. "Why is == an infix operator ?"</H2>
+
+In Joy almost all operators are written in postfix order,
+after their operands.
+One exception seems to be the == operator in definitions.
+Why should == be treated differently from the others?
+<P>
+In just about all programming languages a program consists of a number
+of definitions of procedures or functions.
+Among them is one, called "main" in C, or an anonymous one in Pascal,
+which is the starting point.
+The same pattern occurs in grammars, which consist of definitions
+of non-terminals, including one that is called "start" or whatever.
+The pattern is also used in most macro expanders
+in which a collection of macro definitions is processed.
+<P>
+Any one of the definitions consists of two parts:
+1) a name, and 2) a body obeying a syntax very specific to the language.
+In procedural languages like C or Pascal the body is a
+statement sequence.
+In functional languages the body is an applicative expression.
+In grammars the body is a regular expression over terminals
+and non-terminals.
+In macro expanders the body consists of literal text.
+In each case the body may contain calls to items defined elsewhere.
+<P>
+A definition contains a body as a part.
+The body must satisfy certain syntactic rules,
+and so must the whole definition.
+But in all cases the syntax for a whole definition is different
+from that of its largest part, the body.
+In procedural languages the body is a statement sequence,
+but a definition is not.
+In functional languages a body is an applicative expression,
+but a definition is not.
+In grammars a body is a regular expression,
+but a definition is not.
+In macro expanders a body is just text, but a definition is not.
+Lisp looks like an exception,
+because both bodies and definitions are symbolic expressions,
+written in a minimal syntax.
+But there are restrictions on definitions that are not imposed on bodies.
+<P>
+Definitions and bodies play very different roles.
+The difference is most conspicuous in fully compiled implementations.
+During compilation definitions produce entries in a symbol table,
+and the bodies are translated into directly executable machine language,
+but the bodies are not executed.
+The resulting compiled program contains no trace of the
+symbol table (except when it has been compiled for a run with
+a symbolic debugger).When the compiled program is run,
+a new structure appaears, typically at least a run-time stack,
+which did not exist during compilation.
+Now the body of the main program and any other called bodies
+can be executed.
+<P>
+The compilation stage need not translate bodies into directly
+executable machine language.
+The target language is some idealised machine language which needs
+to be interpreted.
+When such a program is run,
+there will be a run-time stack and in addition a software interpreter.
+(The portable Pascal implementation P4 works like this.)
+<P>
+Even if the compiler and the interpreter are in the same program,
+there still are these two stages:
+1) reading a program, processing definitions and compiling bodies
+into some internal form, and
+2) running a program by interpreting the internal form.
+When the program is run, the symbol table is still there,
+but no new definitions are entered.
+The run-time stack and other structures are present during reading,
+but only used now when the translated bodies are executed by
+the interpreter.
+<P>
+Numerous variations are possible,
+but the difference between the two stages is always present.
+So there is no reason to use the same syntax for definitions and bodies.
+The same applies to Joy.
+<P>
+The syntax for definitions in Joy is<BR>
+<PRE>
+        name   ==   body
+</PRE>
+where the body is a concatenative expression.
+The symbol "==" could even be left out altogether.
+A definition sequence consists of
+one or more definitions separated by semicolons.
+Importantly, unlike "==", the semicolon could not be left out.
+Definition sequences are headed by "LIBRA" or "DEFINE"
+and terminated by a period.
+But none of the the symbols
+"LIBRA", "DEFINE", "==", ";" and "."
+denote run-time operations like "+", "cons" or "map" do.
+The same is true for
+"HIDE", "IN" and "END" in local definitions.
+<P>
+So, "==" is not a postfix operator
+because it is not a run-time operator
+any more that the other symbols used in definitions.
+
+<H2>2. "But why can't definitions be entered at run-time ?"</H2>
+
+This question is very different from the preceding one.
+Whatever the syntax of definitions, it would be possible to
+allow definitions to be entered at run-time.
+But it may well be a bad idea.
+<P>
+For the sake of having a concrete example, consider the ordinary
+definition
+<PRE>
+	cube   ==   dup  dup  *  *
+</PRE>
+that is normally processed at compile-time.
+If such a definition is to be entered into the symbol table
+at run-time, then the two parts must be available:
+1) the name "cube", and 2) the body "dup dup * *".
+Clearly none of the following will do
+<PRE>
+	cube   ==   dup  dup  *  *
+	cube  dup  dup  *  *   ==
+	cube  [dup dup * *]   DEF
+</PRE>
+because the initial occurence of "cube" will at run-time
+produce a call to that function which has not yet been defined.
+So the name of the function being defined has to be expressed
+in a way that prevents a call and instead produces an entry into
+the symbol table.
+Furthermore, the two occurrences of "dup" and of "*"
+in the first two candidates
+also have to be prevented from producing a call,
+as indeed they are in the third candidate.
+<P>
+This suggest the other notation<BR>
+<PRE>
+	"cube"  [dup dup * *]  DEF
+</PRE>
+In other words, "DEF" would expect a string and a quotation
+on top ot the stack, it would pop these off and enter the definition.
+In that case the following would produce the same result:
+<PRE>
+	"uc"  reverse  "xbe"  rest  concat  [dup dup * *]  DEF
+</PRE>
+However it is dubious whether such freedom to construct names
+by string manipulation can do anything but obfuscate a program.
+Other possibilities are these:
+<PRE>
+	[cube]  first  [dup dup * *]  DEF1
+	[cube  dup dup * *]  DEF2
+</PRE>
+In both cases the new symmbol being defined occurs
+inside a quotation so it is not being executed.
+In the first case the symbol even ends up on the Joy stack
+just on its own, but again it is not executed.
+The two styles are essentially equivalent,
+although DEF1 and DEF2 have different expectations as to
+what has to be on top of the stack.
+Their equivalence can be seen by the mutual
+definitions - ordinary definitions, that is -
+<PRE>
+	DEF1   ==     cons  DEF2
+	DEF2   ==   uncons  DEF1
+</PRE>
+Both styles lend themselves to program manipulation
+before the definitions are entered, for example
+<PRE>
+	[cube]  first  [* * dup dup]  reverse  DEF1
+	[* *]  [dup dup]  concat  [cube]  swoncat  DEF2
+</PRE>
+Note that this is quite different from the construction
+of quotations
+that is often used in Joy  before the quotations are
+processed by a combinator.
+For example, it is now possible to initialise
+a definition, say of "current-item", by
+<PRE>
+	[current-item  1]   DEF2
+</PRE>
+and to update it with, say an increment of 3, by
+<PRE>
+	current-item  3  +  []  cons  [current-item]  swoncat  DEF2
+</PRE>
+This means that the name "current-item" is actually
+the name of a variable which can be updated in all manners
+of ways.
+Hence the language would have assignment statements
+(with a terrible syntax).
+But assignment statements are what Joy and all purely functional
+languages try to avoid.
+<P>
+In the above example, current-item is an integer variable.
+Clearly one could have string or set or list variables, too.
+One could also have operator variables,
+or combinator variables,
+or quotation variables,
+or variables that start their life as integer variables
+and then become all sorts of other kinds of variables.
+So, allowing definitions to be entered at run-time
+would open all the possibilities of programs that
+constantly modify themselves.
+But it is widely agreed that this is a bad idea.
+
+<H2>3. "What happens if one takes the first of [dup *] ?"</H2>
+
+Or what happens if I take the second of [dup *] ?
+The usual list operations <EM>concat</EM> and <EM>rest</EM> applied to a
+quotation obviously leave a quotation on top of the stack.
+But list operations like
+<EM>first</EM>, <EM>second</EM>, <EM>uncons</EM> and <EM>unswons</EM>
+seem to leave an unadorned and unquoted
+operator (or combinator) on the stack:
+<PRE>
+	[dup *]  first   ==>   dup
+	[dup *]  second  ==>   *
+	[dup *]  uncons  ==>   dup  [*]
+</PRE>
+Does this make any sense at all? What can one do with such
+an unadorned unquoted operator?
+<P>
+There are many things one can do with an unadorned operator.
+Like any other item on the stack, it can be <EM>pop</EM>ped,
+<EM>swap</EM>ped or <EM>dup</EM>ed. It can be printed
+either by an explicit <EM>put</EM> or, if the <EM>setautoput</EM>
+flag is set to 1 or 2, automatically after the execution
+of the current program.
+Of course it can also be read back.
+What is written or read is of course the sequence of 3 characters,
+d-u-p, in the first case.
+More interestingly, the unadorned operator can be made part of
+another quotation, as in
+<PRE>
+	[dup *]  first  []  cons   ==>   [dup]
+</PRE>
+The resulting quotation [dup] can become a parameter for
+a combinator, for example the i-combinator which will just
+execute what is inside the quotation.
+So we have
+<PRE>
+	[dup *]  first  []  cons  i    ==    dup
+</PRE>
+If the operator or combinator is not a primitive,
+but defined by the user,
+then one can get the body of its definitions as a quotation.
+For example, in the current implementation
+<EM>first</EM> is a primitive, but <EM>second</EM> is
+defined in the initial library inilib.joy:
+<PRE>
+	second   ==   rest  first
+</PRE>
+The body of that definition is accessible by<BR>
+<PRE>
+	[second]  first  body
+</PRE>
+which will leave the quotation  [rest first] on top of the stack.
+
+<H2>4. "Why does Joy have all those recursion combinators?
+   Why not just use plain explicit recursion?"</H2>
+<P>
+A: In the 70's it was recognised that programs using structured IFs
+and WHILEs are easier to get right and easier to read than programs
+which use GOTOs and in which the pattern of the flow of control
+has to be inferred by laborious analysis.
+<P>
+In the functional languages which use lists a lot much of list
+processing falls into a few recursion patterns which are often
+abstracted as combinators such as map, filter and fold, and
+also a few variants such as zipwith. Programs which use these
+combinators by name are easy to write and easier to read than
+programs in which the pattern of recursion on lists has to
+be inferred.
+<P>
+Joy takes this idea a step further by combinators for recursion
+patterns that are independent of any particular datatype such
+as lists above. For linear recursion there is the combinator
+linrec, its special case tailrec, and even more special case
+while. There is also the more flexible condlinrec. For binary
+recursion there is the combinator binrec, but so far no more
+special or more flexible versions. For recursion with arbitrary
+n-ary branching there is the combinator genrec, so far with
+no variants. For recursion on trees of any type other than lists
+there are several combinators. For nested recursion (as in the
+Ackermann function) there will soon be two combinators nestrec
+and condnestrec. So far there are no combinators for mutual
+recursion. All these combinators are more intuitive and descriptive
+than the well-known "paradoxical" all-purpose recursion combinators
+(Curry's) Y and (Turing's) T which are frequently defined but
+never used because they are all-purpose and hence not descriptive.
+<P>
+Of course the execution of programs without explicit GOTOs typically
+involves its use internally. Similarly, the execution of programs
+with recursion combinators but without explicit recursion typically
+involves its use internally. But programs using combinators are
+easier to write and read than ones using explicit recursion and
+in which the pattern of all, not just list, recursions has to be
+inferred. So, if you like, "Recursion considered harmful".
+<P>
+As a bonus, at least for the current implementation, programs
+using recursion combinators are more efficient than programs
+using explicit recursion.
+
+<H2>5. "So why don't other languages have recursion combinators ?"</H2>
+
+A: For several, mostly independent reasons:
+<P>
+1. Joy combinators take quotations as arguments. Other languages
+would have to use lambda abstractions instead. But many have no
+way of capturing the current environments.
+<P>
+2. Apart from this, many languages could not even define a lambda
+counterpart of Joy's simple i combinator - the "dequotation combinator". 
+This rules out most mainstream languages. Some counterpart might be
+definable in the Lisps, ML, Haskell and Prolog/
+<P>
+3. Again indpendently, there will be a problem about Joy's simple
+branching combinator ifte. With "eager" evaluation it is not
+possible to define an ordinary function for branching, as Eva Lou
+Ator will tell you, in SICP p 23. Branching has to be done with
+"special forms" cond or if. To define them one needs delayed
+evaluation or macros. Since the recursion combinators all
+involve branching they need the same.
+<P>
+4. The next hurdle concerns the number of extra parameters
+apart from the quotation parameters for combinators. In Joy
+all parameters, including extra ones just sit on the
+stack. A different language might do one of the following:
+(a) Have several versions of combinators for each possible
+number of extra parameters. (b) If possible, use whatever
+facility the language has for optional parameters, and put
+the extras there. (c) Rewrite all functions including combinators
+as taking a stack (a list) as their sole parameter.
+<P>
+5. Some languages are strongly statically typed, perhaps
+in a polymorphic way. Finite unions can then solve the
+problem that combinators are supposed to take as parameters
+functions of all sorts of base types but also lists of
+these and lists of lists of base types and so on. But I don't
+know whether this can handle lists of mixtures of lists of
+mixtures when the entire mix is unknowable at compile time.
+<P>
+There are languages in which the Y or T combinators can 
+be defined, or at least collections of variants for different
+number of parameters of the recursing function. Presumably
+using similar techniques it is possible to define
+in these languages counterparts
+of the recursion combinators of Joy. But I have never seen
+such definitions, and hence never their routine use.
+<P>
+[MYNOTES: higher-order-combs continuations oo mess-pass lazy
+get-put-funct cat-theory]
+<P>
+Back to homepage for
+<A HREF="/philosophy/phimvt/index.html">Manfred von Thun</A>
+</BODY>
+</HTML>

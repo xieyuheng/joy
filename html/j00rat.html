@@ -1,0 +1,1431 @@
+<TITLE> Rationale for Joy </TITLE>
+<META name = "description"
+   content = "Rationale for Joy, a functional language">
+<META name = "keywords"
+    content = "lambda calculus, combinatory logic,
+               abstraction, application, function composition">
+Back to <A HREF="/philosophy/phimvt/j00syn.html">
+    Synopsis of Joy, a functional language </A>
+
+<H1> Rationale for Joy, a functional language </H1>
+<I> by Manfred von Thun </I>
+<P>
+<EM>Abstract: </EM>
+Joy is a high-level purely functional programming language
+which is not based on the application of functions
+but on the composition of functions.
+This paper gives a rationale for Joy
+by contrasting it with with other paradigms of functional languages.
+Joy differs from lambda calculus languages in that it has no
+variables and hence no abstraction.
+It differs from the combinatory calculus in that it does not use application.
+It differs from the categorical languages in <EM>uniformly</EM>
+using an untyped stack as the argument and value of the composed functions.
+One of the datatypes is that of programs,
+and the language makes extensive use of this,
+more than other reflective languages.
+The paper gives practical and theoretical introductions
+to various aspects of the language.
+<P>
+<EM>Keywords: </EM>
+lambda calculus, combinatory logic, lambda abstraction,
+function application, function composition,
+postfix notation
+
+<H1>Introduction</H1>
+The language Joy is a purely functional programming language.
+Whereas all other functional programming languages are based
+on the application of functions to arguments,
+Joy is based on the composition of functions.
+All such functions take a stack as argument and produce
+a stack as value.
+Consequently much of Joy looks like ordinary postfix notation.
+However, in Joy a function can consume any number of
+parameters from the stack and leave any number of results on the stack.
+The concatenation of appropriate programs denotes
+the composition of the functions which the programs denote.
+One of the datatypes of Joy is that of quoted programs,
+of which lists are a special case.
+Some functions expect quoted programs on top of the stack
+and execute them in many different ways, effectively by dequoting.
+So, where other functional languages use abstraction and application,
+Joy uses quotation and combinators -- functions which perform dequotation.
+As a result, there are no named formal parameters,
+no substitution of actual for formal parameters,
+and no environment of name-value pairs.
+Combinators in Joy
+behave much like functionals or higher order functions in other languages,
+they minimise the need for recursive and non-recursive definitions.
+Joy has a rich but simple algebra,
+and its programs are easily manipulated by hand and by other programs.
+<P>
+Joy is an attempt to design a high level programming language
+which is based on a computational paradigm that is
+different from the three paradigms on which existing functional languages
+are based.
+Two of these paradigms have been criticised in the literature,
+and Joy aims to overcome the complexity of the third
+by a simpler mechanism.
+<P>
+The remainder of this paper is organised as follows.
+The next two section of the paper assume some familiarity with
+three paradigms:
+the lambda calculus, combinatory calculus and, to a lesser extent,
+the basic notions of category theory.
+The purpose of these sections is to contrast Joy with these paradigms
+and to motivate the departure.
+The other sections are very specific to Joy and hence
+mostly self-contained.
+One section is a short tutorial introduction,
+another a discussion of theoretical aspects.
+The concluding section
+gives a more detached perspective.
+<H1>Background of functional languages</H1>
+<P>
+All natural languages and most artificial languages contain as a component
+a <BF>functional language</BF>
+which allows expressions to be built up from individual symbols
+together with functional symbols.
+In appropriate interpretations the expressions have a value which is
+an individual.
+Even statements can be considered to belong here,
+provided we take predicates to be functions which yield a truth value.
+Sometimes one needs <BF>higher order</BF> functions,
+often called functionals or <BF>combinator</BF>s
+which can take other functions as parameters.
+Higher order functions can be handled in
+the <BF>lambda calculus</BF>.
+Here functional expressions are built from variables and constants
+by just two constructions.
+One of these is <EM>lambda abstraction</EM>:
+if <CODE>(..x..)</CODE> is an expression containing a variable,
+then its lambda abstraction is generally written $\lambda$<CODE>x(..x..)</CODE>
+and pronounced
+"the function of one parameter <CODE>x</CODE> which yields the result
+<CODE>(..x..)</CODE>".
+The other construction is <EM>application</EM>, written in infix:
+if <CODE>f</CODE> is a function, then <CODE>f @ x</CODE>
+is the result of applying the function to <CODE>x</CODE>.
+Functions of several parameters are still a nuisance because
+one has to write <CODE>g @ <x,y></CODE> and <CODE>h @ <x,y,z></CODE>
+and so on.
+There is a useful device called <BF>currying</BF>,
+Generally attributed to Curry, but freely acknowledged by
+him to be due to Sch\"{o}nfinkel (1924).
+The term "Sch\"{o}nfinkeling" never caught on.
+By currying
+all functions can be taken to be unary.
+The binary application operation is still written in infix notation,
+and by making it left-associative some parentheses can be saved.
+Furthermore, since it is the <EM>only</EM> binary operation,
+the <CODE>@</CODE> symbol is simply left out.
+<P>
+The notation makes the expression
+<PRE>
+        +  2  3
+</PRE>
+potentially ambiguous. On one reading it is a prefix expression,
+entirely equivalent to the infix <CODE>2 + 3</CODE> or the postfix
+<CODE>2 3 +</CODE>, with <CODE>+</CODE> as the binary operator and the two
+numerals as operands. On another reading it is a nested infix
+expression with binary application suppressed between the two
+numerals as the main operator and a similar subordinate
+suppressed operator between the curried <CODE>+</CODE> and the <CODE>2</CODE>.
+In practice there is no confusion because the context
+disambiguates, particularly in nested expressions.
+Prefix never needs parentheses,
+that is why it was invented by Polish logicians.
+Applicative notation needs parentheses in more complex expressions,
+see section 3.
+Syntax aside, there is a world of difference in the semantics between
+prefix and <EM>applicative</EM> notation.
+A similar ambiguity will arise later.
+(As yet another applicative notation,
+to eliminate parentheses completely,
+Quine in his foreword to the
+Sch\"{o}nfinkel (1924) reprint
+suggested using prefix for application,
+thus: <CODE>@fx</CODE>, <CODE>@@gxy</CODE> and so on.)
+<P>
+The lambda calculus is an immensely powerful system.
+It comes as a surprise that it is Turing complete,
+that all <EM>computable function</EM>s
+can be expressed in the 
+lambda calculus with just variables, abstraction
+and application, and can then be computed by reduction.
+Even numbers can be represented, as Church numerals,
+and similarly for lists.
+However,
+any efficient implementation will need constants,
+and all practical programming languages based
+on the lambda calculus provide them.
+This includes the older language Lisp
+and its descendants, based on the untyped lambda calculus,
+and also the newer languages
+ML
+%  ML, Miranda\footnote{
+%  "Miranda" is a trademark of Research Software Ltd.}
+and Haskell, based on a typed lambda calculus with parametric polymorphism.
+Central to all of them are the lambda calculus operations
+of abstraction and application.
+<P>
+The lambda calculus is a purely syntactic calculus,
+and its rules have to do with simplifying
+expressions.
+The few rules are deceptively simple but are in fact
+difficult to use correctly in real examples.
+The main difficulty arises from the variables which
+get in each other's way.
+Their purpose is to steer arguments into the right position.
+Can one do without variables,
+to make things easier for people or for computers,
+and still steer arguments into the right position?
+ Brus <EM>et al</EM> (1987 p 364)
+write "if one wants to have a computational model
+for functional languages which is also close to their implementations,
+pure lambda calculus is not the obvious choice anymore".
+<P>
+One alternative is <BF>combinatory calculus</BF>,
+also called <EM>combinatory logic</EM> because of its origin.
+The key idea came from
+ Sch\"{o}nfinkel (1924)
+but was greatly expanded in
+ Curry and Feys (1958).
+Variables can indeed be eliminated completely,
+provided some appropriate higher order functions
+or <BF>combinator</BF>s are introduced.
+Most such systems use as their basis a translation scheme from
+the lambda calculus to a combinatory calculus
+which only <EM>needs</EM> two combinators,
+the <BF>S combinator</BF> and the <BF>K combinator</BF>.
+Abstraction is an operation in the <EM>object language</EM>,
+the lambda calculus.
+In combinatory logic this operation is replaced by
+an operation in the <EM>metalanguage</EM>.
+This new operation is called <BF>bracket abstraction</BF>,
+essentially a compilation.
+Since all lambda calculus expressions can be compiled in this manner,
+the language of combinators is again Turing complete.
+The simple compilation scheme yields translations
+whose length can be exponential
+in the length of the source expression.
+Using additional combinators it is possible
+to produce translations of acceptable lengths.
+The combinators <CODE>S</CODE> and <CODE>K</CODE>
+can be used to define all other combinators one might
+desire,
+or even on their own to eliminate variables and hence lambda abstractions
+<CODE>lambda x (..x..)</CODE>.
+Even recursion can be handled with the "paradoxical" <BF>Y combinator</BF>
+which is equivalent to a (hideous) expression just in <CODE>S</CODE> and <CODE>K</CODE>.
+A similar <CODE>y</CODE> combinator in Joy is discussed in section 5.
+<CODE>Y</CODE> and <CODE>y</CODE> cannot be given a finite type,
+so they are not definable in typed languages.
+Joy, like Lisp, is untyped, hence it requires runtime checks.
+<P>
+So we can do without abstraction but with application together
+with first and higher order functions.
+The resultant system is simpler,
+but because it is so low level,
+it has never been proposed as a programming language.
+However it did inspire
+ Backus (1978)
+in his Turing award lecture
+where he introduced his <BF>FP system</BF>,
+short for "Functional Programming system".
+Central to the language are <EM>functional forms</EM>,
+a small, fixed and unextendible collection
+of combinators operating on unary functions.
+A more recent reference is
+ Backus, Williams and Wimmers (1990).
+Backus acknowledges a dept to combinatory logic,
+but his aim was to produce a variable free notation
+that is amenable to simple algebraic manipulation by people.
+Such ease should produce clearer and more reliable programs.
+<H1>Motivating foundation for Joy</H1>
+<P>
+Like the various lambda calculus languages,
+the low level combinatory calculus and the higher level language
+FP still use <BF>application</BF>
+of functions to their arguments.
+However, as
+ Meertens (1989 p 71)
+writes,
+"The basic problem is that the basic operation of the classical combinator
+calculus (and also of the closely related lambda calculus)
+is application instead of composition.
+Application has not a single property.
+Function composition is associative
+and has an identity element
+(if one believes in the 'generic' identity function)."
+Of course application is substitutive,
+identical arguments yield identical results,
+hence if <CODE>f = g</CODE> and <CODE>x = y</CODE> then <CODE>f @ x = g @ y</CODE>.
+But the substitutivity property is shared with all other functions.
+Meertens later (p 72) speaks of
+"the need of a suitable system of combinators
+for making functions out of component functions
+without introducing extra names in the process.
+Composition should be the major method, and not application."
+This is in fact done in category theory
+for the (concrete) category of functions,
+their compositions and their types.
+Like Backus, Meertens develops a system of combining functions
+that is more suitable to formal manipulation
+than the classical combinators.
+<P>
+Consider a long expression, here again written explicitly with
+the application operator <CODE>@</CODE>.
+Note the need for parentheses.
+<PRE>
+    square @ (first @ (rest @ (reverse @ [1 2 3 4])))   -->  9
+</PRE>
+All the functions are unary, and unary functions can be composed.
+The <BF>composition</BF> of unary functions is again a unary function,
+and it can be applied like any other unary function.
+Let us write composition with an infix dot <CODE>"."</CODE>.
+The composition can be applied to the original list:
+<PRE>
+    (square . first . rest . reverse)  @  [1 2 3 4]     -->  9
+</PRE>
+One might even introduce definitions in the style of the first line,
+and then write as in the second line:
+<PRE>
+    second = first . rest        second-last = second . reverse
+    (square . second-last)  @  [1 2 3 4]                -->  9
+</PRE>
+This and also the preceding definitions would not make sense with
+application instead of composition.
+Importantly, a definition can be used to textually replace
+the <EM>definiendum</EM> by its <EM>definiens</EM>
+to obtain the original long composition expression.
+This is because the textual operation of compounding several
+expressions to make a larger one is mapped onto the
+semantic operation of composing the functions denoted by the expressions.
+The textual replacement is not possible
+in the original applicative expression because
+the parentheses get in the way.
+<P>
+Substitutivity is a highly desirable property for algebraic manipulation.
+The only trouble is that the resultant composition expression
+still has to be applied to an argument,
+the list <CODE>[1 2 3 4]</CODE>.
+If we could elevate that list to the status of a function,
+we could eliminate application entirely from the expression
+and write
+<PRE>
+    square . first . rest . reverse . [1 2 3 4]         -->  9
+</PRE>
+The numeral <CODE>9</CODE> would also need to denote a function.
+Can this be done?
+<P>
+Indeed it can be.
+We just let numerals and list constants denote functions
+which take a fixed dummy argument, written <CODE>?</CODE>,
+as argument and return a number or a list as value.
+So we should now write
+<PRE>
+  (square . first . rest . reverse . [1 2 3 4])  @  ?   -->   9 @ ?
+</PRE>
+We just have to pretend that <CODE>@ ?</CODE> is not there,
+that everything is a function anyhow.
+The dummy argument device is routinely used in
+the category of functions,
+and the pretense is argued to be a superior view.
+<P>
+All this works well with unary functions, but how is one to deal
+with functions of several arguments?
+In category theory there is the notion of <EM>products</EM>,
+and in the category of functions it is a way of dealing
+with interrelated <BF>pair</BF>s ---
+function pairs to produce value pairs of a type pair.
+(Backus in his FP used a similar mechanism, <EM>construction</EM>
+which used function tuples to produce value tuples.
+But the function tuples ultimately need the application
+operation to produce the value tuple.)
+Two important <EM>projection</EM> functions are needed
+for picking the first and second from a pair
+(<CODE>car</CODE> and <CODE>cdr</CODE> in Lisp).
+Pairs would seem to be the obvious way to handle binary functions.
+But this reintroduces pairs (of functions)
+whereas in the lambda calculus pairs (of arguments)
+were so elegantly eliminated by currying.
+In category theory there is also the notion of <EM>exponentials</EM>,
+and in the category of functions they are a way of dealing
+with the interrelation between the type of functions,
+the type of their arguments and the type of values.
+Two important functions are needed:
+explicit currying and explicit application (<CODE>apply</CODE> in Lisp).
+This makes such <BF>Cartesian closed categories</BF> second order.
+They are a computationally equivalent alternative
+to the (typed) lambda calculus and to combinatory calculus.
+So these <BF>categorical languages</BF>
+can handle functions of several argument
+and all higher order functions.
+<P>
+ Barr and Wells (1990 Chapter 6)
+give an example of a simple lambda expression
+with variables contrasted with first
+a complicated looking and then a reformulated categorical equivalent formula.
+Here the steering of arguments into the right place
+is essentialy done by the projection functions.
+Category theory has given rise to another model of computation:
+the CAM or Categorical Abstract Machine,
+described for example in
+ Cousineau <EM>et al</EM> (1987).
+The machine language of the CAM is very elegant,
+but programs in that language
+look as inscrutable as low level programs in other
+machine languages.
+The language is of course suitable as the target language
+for compilation from any functional language.
+For more recent references,
+including to exciting hardware applications, see
+ Hains and Foisy (1993).
+<P>
+Many categorical concepts have been successfully used
+in otherwise applicative languages,
+such as the polymorphically typed Haskell, see the recent
+ Bird and de Moor (1997)
+for the now mature theory and for many references.
+Compact "pointfree" definitions in the style of <CODE>second-last</CODE> above
+are used routinely,
+but many need additional operators, even application,
+for example (p 10):
+<PRE>
+    length  =  sum . listr one            where  one a  =  1
+</PRE>
+Note the implicit application between <CODE>listr</CODE> and <CODE>one</CODE>
+and again between <CODE>one</CODE> and <CODE>a</CODE> in the local <CODE>where</CODE> definition.
+The whole definition may be read as:
+to compute the length of a list,
+let <CODE>one</CODE> be the function which ignores its argument (<CODE>a</CODE>)
+and always returns <CODE>1</CODE>, use this function to map (<CODE>= listr</CODE>)
+the given list to produce a list of just <CODE>1</CODE>s,
+then take the sum of those.
+<P>
+At least for handling functions of several arguments
+categorical concepts are rather heavy artillery.
+Are there other ways?
+Consider again the runnning example.
+Written in plain prefix notation it needs no parentheses at all:
+<PRE>
+    square  first  rest  reverse  [1 2 3 4]             -->  9
+</PRE>
+An expression with binary operators such as the infix expression
+<CODE>((6 - 4) * 3) + 2</CODE>
+is written in prefix notation also without parentheses as
+<PRE>
+        +     *     -     6     4     3     2           -->  8
+</PRE>
+(Note in passing that the four consecutive numerals look
+suspiciously like a list of numbers.)
+We now have to make sense of the corresponding compositional
+notation
+<PRE>
+       (+  .  *  .  -  .  6  .  4  .  3  .  2)  @  ?    -->  8 @ ?
+</PRE>
+Clearly the "<CODE>2</CODE>-function" is applied to the dummy argument.
+But the other "number functions" also have to be applied to something,
+and each value produced has to be retained for pairwise consumption
+by the binary operators.
+The order of consumption is the <EM>reverse</EM> of the order
+of production.
+So there must be a stack of intermediate values which first grows
+and later shrinks.
+The dummy argument <CODE>?</CODE> is just an empty stack.
+<P>
+What we have gained is this:
+The expression denotes a composition of unary <BF>stack</BF> functions.
+Literal numerals or literal lists denote unary functions
+which return a stack that is just like the argument stack
+except that the number or the list has been pushed on top.
+Other symbols like <CODE>square</CODE> or <CODE>reverse</CODE>
+denote functions which expect as argument a stack whose top element
+is a number or a list.
+They return the same stack except that the top element has been replaced by
+its square or its reversal.
+Symbols for what are normally binary operations
+also denote unary functions from stacks to stacks
+except that they replace the top two elements by a new single one.
+It is helpful to reverse the notation
+so that compositions are written in the order of their evaluation.
+A more compelling reason is given in the next section.
+<P>
+This still only has composition as a second order stack function.
+Others are easy enough to introduce, using a variety of possible notations.
+But now we are exactly where we were at the beginning of section 2:
+The next level, third order  stack functions,
+calls for a lambda calculus with variables ranging over first order
+stack functions.
+The variables can be eliminated by translating into a lean or rich
+combinatory calculus.
+Application can be eliminated by substituting composition
+of second order stack functions, and so on.
+This cycle must be avoided.
+(But maybe the levels can be collapsed by something resembling
+reducibility in Russell's theory of types?)
+<P>
+In reflective languages such as Lisp, Snobol and Prolog,
+in which <EM>program = data</EM>, it is easier to write
+interpreters, compilers, optimisers and theorem provers
+than in non-reflective languages.
+It is straightforward to define higher order
+functions, including the <CODE>Y</CODE> combinator.
+<P>
+ Backus (1978)
+also introduces another language, the reflective
+<BF>FFP system</BF>, short for "Formal Functional Programming system".
+In addition to objects as in FP there is now a datatype of <EM>expressions</EM>.
+In addition to the listforming constructor as in FP
+there is now a new binary constructor to form <EM>application</EM>s
+consisting of an operator and an operand.
+So expressions can be built up,
+but they cannot be taken apart,
+and hence FFP is not fully reflective, <EM>program = $1/2$ data</EM>.
+One semantic rule, <EM>metacomposition</EM>, is immensely powerful.
+It can be used to define arbitrary new functional forms,
+including of course the fixed forms from FP.
+The rule also makes it possible to compute recursive functions
+without a recursive definition.
+This is because in the application
+the function is applied to a pair which includes the original
+list operand which in turn contains as its first element
+the expression denoting the very same function.
+The method is considerably simpler than the
+use of the <CODE>Y</CODE> combinator.
+A mechanism similar to metacomposition is possible in Joy,
+see section 6.
+<P>
+Joy is also reflective.
+As noted in passing earlier,
+expressions which denote compositions of stack
+functions which push a value already look like lists.
+Joy extends this to arbitrary expressions.
+These are now called quotations and can be
+manipulated by list operations.
+The effect of higher order functions
+is obtained by first order functions which take
+such quotations as parameters.
+<H1>A little tutorial on Joy</H1>
+<P>
+To add two integers, say 2 and 3, and to write their sum,
+you type the program
+<PRE>
+        2  3  +
+</PRE>
+This is how it works internally:
+the first numeral causes the integer 2 to be pushed onto a stack.
+The second numeral causes the integer 3 to be pushed on top of that.
+Then the addition operator pops the two integers off the stack
+and pushes their sum, 5.
+In the default mode there is no need for an explicit output
+instruction, so the numeral <CODE>5</CODE> is now written to the output file which
+normally is the screen.
+Joy has the usual arithmetic operators for integers,
+and also two other <BF>simple datatypes</BF>:
+truth values and characters, with appropriate operators.
+<P>
+The example expression above is potentially ambiguous.
+On one reading it is a postfix expression, equivalent to
+prefix or infix, with binary <CODE>+</CODE> as the main operator.
+On another reading it is a nested infix expression,
+with either of the two suppressed composition operators
+as the main operator.
+In practice there is no confusion,
+but there is a world of difference in the semantics.
+<P>
+To compute the square of an integer, it has to be multiplied by itself.
+To compute the square of the sum of two integers,
+the sum has to be multiplied by itself.
+Preferably this should be done without computing the sum twice.
+The following is a program to compute the square of the sum of 2 and 3:
+<PRE>
+        2  3  +  dup  *
+</PRE>
+After the sum of 2 and 3 has been computed,
+the stack just contains the integer 5.
+The <CODE>dup</CODE> operator then pushes another copy of the 5
+onto the stack.
+Then the multiplication operator replaces the two integers by their product,
+which is the square of 5.
+The square is then written out as 25.
+Apart from the <CODE>dup</CODE> operator
+there are several others for re-arranging the top of the stack.
+The <CODE>pop</CODE> operator removes the top element,
+and the <CODE>swap</CODE> operator interchanges the top two elements.
+These operators do not make sense in true postfix notation,
+so Joy uses the second reading of the ambiguous expression mentioned above.
+<P>
+A list of integers is written inside square brackets.
+Just as integers can be added and otherwise manipulated,
+so lists can be manipulated in various ways.
+The following <CODE>concat</CODE>enates two lists:
+<PRE>
+        [1 2 3]  [4 5 6 7]  concat
+</PRE>
+The two lists are first pushed onto the stack.
+Then the <CODE>concat</CODE> operator pops them off the stack
+and pushes the list <CODE>[1 2 3 4 5 6 7]</CODE> onto the stack.
+There it may be further manipulated or it may be written
+to the output file.
+Other list operators are <CODE>first</CODE> and <CODE>rest</CODE>
+for extracting parts of lists.
+Another is <CODE>cons</CODE> for adding a single element,
+for example <CODE>2 [3 4] cons</CODE> yields <CODE>[2 3 4]</CODE>.
+Since <CODE>concat</CODE> and <CODE>cons</CODE> are not commutative,
+it is often useful to use <CODE>swoncat</CODE> and <CODE>swons</CODE>
+which conceptually perform a <CODE>swap</CODE> first.
+Lisp programmers should note that there is no notion of dotted pairs
+in Joy.
+Lists are the most important <BF>sequence</BF> types,
+the other are strings  of characters.
+Sequences are ordered, but there are also sets
+(currently only implemented as wordsize bitstrings,
+with the obvious limitations).
+Sequences and sets constitute the <BF>aggregate</BF> types.
+Where possible operators are overloaded, so they have some
+<EM>ad hoc</EM> but still somewhat systematic polymorphism.
+<P>
+Joy makes extensive use of <BF>combinator</BF>s.
+These are like operators in that they expect something
+specific on top of the stack.
+But unlike operators they execute what they find on top of the stack,
+and this has to be the <BF>quotation</BF> of a program,
+enclosed in square brackets.
+One of these is a combinator for <CODE>map</CODE>ping
+elements of one list via a function to another list.
+Consider the program
+<PRE>
+        [1 2 3 4]  [dup *]  map
+</PRE>
+It first pushes the list of integers and then the quoted program
+onto the stack.
+The <CODE>map</CODE> combinator then removes the list
+and the quotation and constructs another list
+by applying the program to each member of the given list.
+The result is the list <CODE>[1 4 9 16]</CODE>
+which is left on top of the stack.
+The <CODE>map</CODE> combinator also works for strings and sets.
+Similarly, there are a <CODE>filter</CODE> and a <CODE>fold</CODE> combinator,
+both for any aggregate.
+<P>
+The simplest combinator is <CODE>i</CODE> (for 'interpret').
+The quotation parameter <CODE>[dup *]</CODE> of the <CODE>map</CODE> example
+can be used by the <CODE>i</CODE> combinator to square a single number.
+So <CODE>[dup *] i</CODE> does exactly the same as just <CODE>dup *</CODE>.
+Hence <CODE>i</CODE> undoes what quotation did, it is a dequotation
+operator, just like <CODE>eval</CODE> in Lisp.
+All other combinators are also dequotation operators.
+But now consider the program <CODE>1 2 3</CODE> and its quotation <CODE>[1 2 3]</CODE>.
+The program pushes three numbers, and the quotation is just a list literal.
+Feeding the list or quotation to <CODE>i</CODE> pushes the three numbers.
+So we can see that lists are just a special case of quotations.
+<P>
+The familiar list operators can be used for quotations with good effect.
+For example, the quotation <CODE>[* +]</CODE>, if dequoted by a combinator,
+expects three parameters on top of the stack.
+The program <CODE>10 [* +] cons</CODE> produces the quotation <CODE>[10 * +]</CODE>
+which when dequoted expects only two parameters because it supplies
+one itself.
+The effect is similar to what happens in the lambda calculus
+when a curried function of three arguments is applied to one
+argument.
+As mentioned earlier,
+a similar <EM>explicit</EM> application operation is available in FFP.
+The device of <BF>constructed programs</BF>
+is very useful in Joy,
+and the resultant simple notation is another reason
+for writing function composition in diagrammatic order.
+<P>
+Combinators can take several quotation parameters.
+For example the <CODE>ifte</CODE> or if-then-else combinator
+expects three in addition to whatever data parameters it needs.
+Third from the top is an if-part.
+If its execution yields truth,
+then the then-part is executed, which is second from the top.
+Otherwise the else-part on top is executed.
+The order was chosen because
+in most cases the three parts will be pushed just before
+<CODE>ifte</CODE> executes.
+For example, the following yields the absolute value of an integer,
+note the empty else-part.
+<PRE>
+        [0 &lt]  [0 swap -]  []  ifte
+</PRE>
+<P>
+Sometimes it is necessary to affect the elements just below the top element.
+This might be to add or swap the second and third element,
+to apply a unary operator to just the second element,
+or to push a new item on whatever stack is left below
+the top element.
+The <CODE>dip</CODE> combinator expects a quotation
+parameter (which it will consume),
+and below that one more element.
+It saves that element away, executes the quotation on whatever
+of the stack is left, and then restores the saved element.
+So <CODE>2 3 4 [+] dip</CODE> is the same as <CODE>5 4</CODE>.
+This single combinator was inspired by several
+special purpose optimising combinators <CODE>S'</CODE>, <CODE>B'</CODE>
+and <CODE>C'</CODE> in the combinatory calculus, see
+ Peyton Jones (1987, sections 16.2.5 and 16.2.6).
+<P>
+The stack is normally just a list, but even operators and
+combinators can get onto it by e.g. <CODE>[swap] first</CODE>.
+Since the stack is the memory,
+in Joy <EM>program = data = memory</EM>.
+The stack can be pushed as a quotation onto the stack by <CODE>stack</CODE>,
+a quotation can be turned into the stack by <CODE>unstack</CODE>.
+A list on the stack, such as <CODE>[1 2 3 4]</CODE> can be treated
+temporarily as the stack by a quotation, say <CODE>[+ *]</CODE>
+and the combinator <CODE>infra</CODE>,
+with the result <CODE>[9 4]</CODE>.
+<P>
+In <BF>definition</BF>s of new functions no formal parameters are used,
+and hence there is no substitution of actual parameters for formal parameters.
+Definitions consist of a new symbol to be defined,
+then the <CODE>==</CODE> symbol, and then a program.
+After the first definition below,
+the symbol <CODE>square</CODE>
+can be used in place of <CODE> dup * </CODE>.
+<PRE>
+        square   ==   dup  *
+        size     ==   [pop 1]  map  sum
+</PRE>
+The second definition is the counterpart of the
+definition of <CODE>length</CODE> in
+ Bird and de Moor (1997 p 10)
+mentioned in the previous section,
+except that it is called <CODE>size</CODE> because it also applies to sets.
+(Note that no local definition of <CODE>one</CODE> is needed.)
+As in other programming languages,
+definitions may be recursive,
+but the effect of recursion can be obtained by other means.
+Joy has several combinators which make recursive execution of programs
+more succinct.
+<P>
+One of these is the <CODE>genrec</CODE> combinator
+which takes four program parameters
+in addition to whatever data parameters it needs.
+Fourth from the top is an if-part, followed by a then-part.
+If the if-part yields <CODE>true</CODE>,
+then the then-part is executed and the combinator terminates.
+The other two parameters are the rec1-part and the rec2part.
+If the if-part yields <CODE>false</CODE>,
+the rec1-part is executed.
+Following that the four program parameters and the combinator
+are again pushed onto the stack bundled up in a quoted form.
+Then the rec2-part is executed,
+where it will find the bundled form.
+Typically it will then execute the bundled form,
+either with <CODE>i</CODE> or with <CODE>app2</CODE>,
+or some other combinator.
+The following pieces of code,
+<EM>without any definitions</EM>,
+compute the factorial,
+the (naive) Fibonacci and quicksort.
+The four parts are here aligned to make comparisons easier.
+<PRE>
+  [null ] [succ] [dup pred        ] [i *                   ] genrec
+  [small] [    ] [pred dup pred   ] [app2 +                ] genrec
+  [small] [    ] [uncons [>] split] [app2 swapd cons concat] genrec
+</PRE>
+The overloaded unary predicate <CODE>null</CODE> returns
+<CODE>true</CODE> for <CODE>0</CODE> and for empty aggregates.
+Similarly <CODE>small</CODE> returns <CODE>true</CODE> for integers
+less than <CODE>2</CODE> and for aggregates of less than two members.
+The unary operators <CODE>succ</CODE> and <CODE>pred</CODE>
+return the successor and predecessor of integers or characters.
+The aggregate operator <CODE>uncons</CODE> returns two values,
+it undoes what <CODE>cons</CODE> does.
+The aggregate combinator <CODE>split</CODE> is like <CODE>filter</CODE>
+but it returns two aggregates,
+containing respectively those elements that did or did not pass
+the test.
+The <CODE>app2</CODE> combinator applies the same quotation to
+two elements below and returns two results.
+The <CODE>swapd</CODE> operator is an example of having
+to shuffle some elements but leaving the topmost element intact.
+This operator swaps the second and third element,
+it is defined as <CODE>[swap] dip</CODE>.
+Of course the factorial and Fibonacci
+functions can also be computed more efficiently in Joy using
+<EM>accumulating parameter</EM>s.
+<P>
+Two other general recursion combinators are <CODE>linrec</CODE>
+and <CODE>binrec</CODE> for computing
+<BF>linear recursion</BF> and <BF>binary recursion</BF>
+without having to introduce definitions.
+Both have essentially the same kinds of four parts as
+<CODE>genrec</CODE>, except that the recursion occurs
+automatically between the rec1-part and the rec2-part.
+The following is a small program
+which takes one sequence as parameter
+and returns the list of all <BF>permutation</BF>s of that sequence.
+For example,
+from sequences of 4 elements such as
+the string <CODE>"abcd"</CODE>,
+the heterogeneous list <CODE>[foo 7 'A "hello"]</CODE>
+or the quotation <CODE>[[1 2 3] [dup *] map reverse]</CODE>
+it will produce the list of 24 permutation strings or lists or quotations.
+<PRE>
+1               [ small ]
+2               [ unitlist ]
+3               [ uncons ]
+4.1             [ swap
+4.2.1             [ swons
+4.2.2.1             [ small ]
+4.2.2.2             [ unitlist ]
+4.2.2.3             [ dup unswons [uncons] dip swons ]
+4.2.2.4             [ swap [swons] cons map cons ]
+4.2.2.5             linrec ]
+4.3               cons map
+4.4               [null] [] [uncons] [concat] linrec ]
+5               linrec.
+</PRE>
+<P>
+The <CODE>unitlist</CODE> operator might have been defined as
+<CODE>[] cons</CODE>.
+The <CODE>unswons</CODE> operator undoes what <CODE>swons</CODE> does,
+and it might have been defined as <CODE>uncons swap</CODE>.
+An essentially identical program is in the Joy library
+under the name <CODE>permlist</CODE>.
+It is considerably shorter than the one given here
+because it uses two subsidiary programs
+which are useful elsewhere.
+One of these is <CODE>insertlist</CODE> (essentially 4.2)
+which takes a sequence and a further potential new member
+as parameter and produces the list of all sequences
+obtained by inserting the new member once in all possible
+positions.
+The other is <CODE>flatten</CODE> (essentially 4.4)
+which takes a list of sequences and concatenates
+them to produce a single sequence.
+The program given above is an example
+of a non-trivial program which uses
+the <CODE>linrec</CODE> combinator three times
+and the <CODE>map</CODE> combinator twice,
+with <BF>constructed program</BF>s as parameters
+on both occasions.
+Of course such a program
+with local definitions for <CODE>insertlist</CODE> and <CODE>flatten</CODE>
+can be written in any lambda calculus notation.
+But in Joy, as in other pointfree notations,
+no local <EM>definitions</EM> are needed,
+one simply takes the <EM>bodies</EM> of the
+definitions and inserts them textually.
+<P>
+The semantics of Joy can be expressed by two functions
+<CODE>EvP</CODE> and <CODE>Eva</CODE>,
+whose types are:
+<PRE>
+EvP : PROGRAM * STACK  ->  STACK  (evaluate concatenated program)
+EvA :    ATOM * STACK  ->  STACK  (evaluate atomic program)
+</PRE>
+In the following a Prolog-like syntax is used
+(but without the comma separator):
+If <CODE>R</CODE> is a (possibly empty) program or list or stack, then
+<CODE>[F S T | R]</CODE> is the program or list or stack
+whose first, second and third elements
+are <CODE>F</CODE>, <CODE>S</CODE> and <CODE>T</CODE>, and whose remainder is <CODE>R</CODE>.
+The first two equations express that programs
+are evaluated sequentially from left to right.
+<PRE>
+EvP( [] , S)  =  S
+EvP( [A | P] , S)  =  EvP( P , EvA(A, S))
+</PRE>
+The remaining equations concern atomic programs.
+This small selection is restricted to those literals,
+operators and combinators that were mentioned in the paper.
+The exposition also ignores the data types
+character, string and set.
+<PRE>
+(Push literals:)
+  EvA( numeral , S)  =  [number | S]  (e.g.  7  42  -123 )
+  EvA( true    , S)  =  [true   | S]  (ditto "false")
+  EvA( [..]    , S)  =  [[..]   | S]  ([..] is a list or quotation)
+(Stack editing operators:)
+  EvA( dup   , [X   | S])  =  [X X | S]
+  EvA( swap  , [X Y | S])  =  [Y X | S]
+  EvA( pop   , [X   | S])  =         S
+  EvA( stack ,        S )  =  [S   | S]
+  EvA(unstack, [L    | S])  =  L         (L is a quotation of list)
+(Numeric and Boolean operators and predicates:)
+  EvA( +   , [n1 n2 | S])  =  [n | S]    where n = (n2 + n1)
+  EvA( -   , [n1 n2 | S])  =  [n | S]    where n = (n2 - n1)
+  EvA( succ, [n1    | S])  =  [n | S]    where n = (n1 + 1)
+  EvA( <   , [n1 n2 | S])  =  [b | S]    where b = (n2 < n1)
+  EvA( and , [b1 b2 | S])  =  [b | S]    where b = (b2 and b1)
+  EvA( null, [n     | S])  =  [b | S]    where b = (n = 0)
+  EvA(small, [n     | S])  =  [b | S]    where b = (n < 2)
+(List operators and predicates:)
+  EvA( cons  , [ R   F  | S])  =  [[F | R] | S]
+  EvA( first , [[F | R] | S])  =  [F       | S]
+  EvA( rest  , [[F | R] | S])  =  [     R  | S]
+  EvA( swons , [ F   R  | S])  =  [[F | R] | S]
+  EvA( uncons, [[F | R] | S])  =  [R F | S]
+  EvA( null  , [L | S])  =  [b | S]    where b = (L is empty)
+  Eva( small , [L | S])  =  [b | S]    where b = (L has < 2 members)
+(Combinators:)
+  Eva( i   , [Q   | S])  =  EvP(Q, S)
+  EvA( x   , [Q   | S])  =  EvP(Q, [Q | S])
+  EvA( dip , [Q X | S])  =  [X | T]     where EvP(Q, S) = T
+  EvA(infra, [Q X | S])  =  [Y | S]     where EvP(Q, X) = Y
+  EvA( ifte, [E T I | S])  =
+    if EvP(I, S) = [true | U]                (free U is arbitrary)
+      then EvP(T, S)  else EvP(E, S)
+  EvA( app2, [Q X1 X2 | S])  =  [Y1 Y2 | S]
+            where EvP(Q, [X1 | S]) = [Y1 | U1]   (U1 is arbitrary)
+              and EvP(Q, [X2 | S]) = [Y2 | U2]   (U2 is arbitrary)
+  EvA( map , [Q [] | S])  =  [[] | S]
+  EvA( map , [Q [F1 | R1] | S])  =  [[F2 | R2] | S]
+            where EvP(Q, [F1 | S]) = [F2 | U1]
+              and EvA( map, [Q R1 | S]) = [R2 | U2]
+  EvA( split , [Q [] | S])  =  [[] [] | S]
+  EvA( split , [Q [X | L] | S]  = 
+    (if EvP(Q, [X | S]) = [true | U]
+            then [FL [X | TL] | S]  else [[X | FL] TL | S])
+        where EvA( split, [Q L | S]) = [TL FL | S]
+  EvA( genrec , [R2 R1 T I | S])  =
+    if EvP(I, S) = [true | U]  then EvP(T, S)
+    else EvP(R2, [[I T R1 R2 genrec] | W])
+            where EvP(R1, S) = W
+  EvA( linrec, [R2 R1 T I | S])  =
+    if EvP(I, S) = [true | U]  then EvP(T , S)
+    else EvP(R2, EvA(linrec, [R2 R1 I T | W]))
+            where EvP(R1, S) = W
+  EvA( binrec, [R2 R1 T I | S])  =
+    if EvP(I, S) = [true | U]  then EvP(T, S)
+    else EvP(R2, [Y1 Y2 | V])
+            where EvP(R1, S) = [X1 X2 | V]
+              and EvA(binrec, [R2 R1 T I X1 | V]) = [Y1 | U1]
+              and EvA(binrec, [R2 R1 T I X2 | V]) = [Y2 | U2]
+</PRE>
+<H1>Theory of Joy</H1>
+<P>
+In any functional language expressions can be evaluated by
+stepwise rewriting.
+In primary school we did this with arithmetic expressions
+which became shorter with every step.
+We were not aware that the linear form really represents a tree.
+The lambda calculus has more complicated rules.
+The beta rule handles the application of abstractions to arguments,
+and this requires possibly multiple substitutions of the same argument
+expression for the multiple occurrences of the same variable.
+Again the linear form represents a tree, so the rules
+transform trees.
+The explicit substitution can be avoided by using an
+environment of name-value pairs,
+as is done in many implementations.
+In the combinatory calculus there is a tree rule for
+each of the combinators.
+The <CODE>S</CODE> combinator produces duplicate subtrees,
+but this can be avoided by sharing the subtree.
+Sharing turns the tree into a directed acyclic graph,
+but it gives lazy evaluation for free, see
+ Peyton Jones (1987, Chapter 15).
+Rewriting in any of the above typically allows different ordering
+of the steps.
+If there are lengthening rules,
+then using the wrong order may not terminate.
+Apart from that there is always the question of efficiently
+<EM>finding</EM> the next reducible subexpression.
+One strategy, already used in primary school,
+involved <EM>searching</EM> from the beginning at every step.
+This can be used in prefix, infix and postfix
+forms of expression trees,
+and in the latter form the search can be eliminated entirely.
+Postfix ("John Mary loves") is used in ancient Sanscrit
+and its descendants such as modern Tibetan,
+in subordinate clauses in many European languages,
+and, would you believe, in the Startrek language Klingon.
+Its advantage in eliminating parentheses entirely
+has been known ever since Polish logicians
+used prefix for that same purpose.
+It can be given an alternative reading as an infix
+expression denoting the compositions of unary functions.
+Such expressions can be efficiently evaluated on a stack.
+For that reason it is frequently used by compilers as
+an internal language.
+The imperative programming language Forth
+and the typesetting language Postscript are
+often said to be in postfix,
+but that is only correct for a small fragment.
+<P>
+In the following example the lines are doubly labelled,
+lines <CODE>a)</CODE> to <CODE>f)</CODE> represent the stack growing to the right
+followed by the remainder of the program.
+The latter now has to be read as a sequence of instructions,
+or equivalently as denoting the composition
+of unary stack functions.
+<PRE>
+    1  a)                             2   3   +   4   *
+       b)     2                       3   +   4   *
+       c)     2   3                   +   4   *
+    2  d)     5                       4   *
+       e)     5   4                   *
+    3  f)     20
+</PRE>
+If we ignore the gap between the stack and the expression,
+then lines <CODE>a)</CODE> to <CODE>c)</CODE>  are identical,
+and lines <CODE>d)</CODE> and <CODE>e)</CODE> are also identical.
+So, while the stack is essential for the semantics
+and at least useful for an efficient implementation,
+it can be completely ignored in a rewriting system
+which only needs the three numbered steps.
+Such a rewriting needs obvious axioms for each operator.
+But it also needs a rule.
+<P>
+Program concatenation and function composition
+are associative and have a (left and right) unit element,
+the empty program and the identity function.
+Hence meaning maps a syntactic monoid into a semantic monoid.
+Concatenation of Joy programs denote the
+composition of the functions which the
+concatenated parts denote.
+Hence if <CODE>Q1</CODE> and <CODE>Q2</CODE>
+are programs which denote the same function
+and <CODE>P</CODE> and <CODE>R</CODE> are other programs,
+then the two concatenations <CODE>P Q1 R</CODE> and <CODE>P Q2 R</CODE>
+also denote the same function.
+In other words, programs <CODE>Q1</CODE> and <CODE>Q2</CODE>
+can replace each other in concatenations.
+This can serve as a rule of inference for a rewriting system
+because identity of functions is of course already an equivalence.
+
+<P>
+To illustrate rewriting in Joy,
+the "paradoxical" <BF>Y combinator</BF>
+for recursion in  the lambda calculus
+and combinatory logic has a counterpart in Joy,
+the <CODE>y</CODE> combinator defined
+recursively in the first definition below.
+Then that needs to be the only recursive definition.
+Alternatively it can be defined without recursion
+as in the second definition.
+<PRE>
+        y   ==  dup  [[y] cons]  dip  i
+        y   ==  [dup cons]  swap  concat  dup  cons  i
+</PRE>
+The second definition is of greater interest.
+It expects a program on top of the stack from which it will
+construct another program which has the property that if
+it is ever executed by a combinator (such as <CODE>i</CODE>)
+it will first construct a replica of itself.
+Let <CODE>[P]</CODE> be a quoted program.
+Then the rewriting of the initial action of <CODE>y</CODE> looks like this:
+<PRE>
+1       [P]  y
+2   ==  [P]  [dup cons]  swap  concat  dup  cons  i        (def y)
+3   ==  [dup cons]  [P]  concat  dup  cons  i              (swap)
+4   ==  [dup cons P]  dup  cons  i                         (concat)
+5   ==  [dup cons P]  [dup cons P]  cons  i                (dup)
+6   ==  [[dup cons P] dup cons P]  i                       (cons)
+7   ==  [dup cons P]  dup  cons  P                         (i)
+8   ==  [dup cons P]  [dup cons P]  cons  P                (dup)
+9   ==  [[dup cons P] dup cons P]  P                       (cons)
+</PRE>
+What happens next depends on <CODE>P</CODE>.
+Whatever it does, the topmost parameter that it will find on
+the stack is the curious double quotation in line 9.
+(It is amusing to see what happens when <CODE>[P]</CODE> is the
+empty program <CODE>[]</CODE>, especially lines 6 to 9.
+Not so amusing is <CODE>[i]</CODE>, and worse still is <CODE>[y]</CODE>).
+<P>
+Actual uses of <CODE>y</CODE>  may be illustrated with the factorial function.
+The first line below is a standard recursive definition.
+The second one uses uses <CODE>y</CODE> to perform anonymous recursion.
+Note the extra two <CODE>pop</CODE>s and the extra <CODE>dip</CODE>
+which are needed to bypass the quotation constructed by line 9 above.
+The third definition is discussed below.
+In the three bodies the recursive step is initiated by
+<CODE>f1</CODE>, <CODE>i</CODE> and <CODE>x</CODE> respectively.
+<PRE>
+f1  ==    [    null]  [    succ]  [ dup pred      f1 *]  ifte
+f2  ==  [ [pop null]  [pop succ]  [[dup pred] dip i  *]  ifte ]  y
+f3  ==  [ [pop null]  [pop succ]  [[dup pred] dip x  *]  ifte ]  x
+</PRE>
+But the <CODE>y</CODE> combinator is inefficient because every recursive
+call by <CODE>i</CODE> in the body <EM>consumes</EM> the quotation on top
+of the stack, and hence has to first replicate it to make it available
+for the next, possibly recursive call.
+The replication steps are the same as initial steps 6 to 9.
+But all this makes <CODE>y</CODE> rather inefficient.
+However, first consuming and then replicating can be avoided by replacing
+both <CODE>y</CODE> and <CODE>i</CODE> in the body of <CODE>f2</CODE>
+by something else.
+This is done in the body of <CODE>f3</CODE> which uses the simple
+<CODE>x</CODE> combinator that <EM>could</EM> be defined as <CODE>dup i</CODE>.
+Since the definitions of <CODE>f2</CODE> and <CODE>f3</CODE>
+are not recursive, it is possible to <EM>just use the body</EM> of
+either of them and textually insert it where it is wanted.
+The very simple  <CODE>x</CODE> combinator does much the same job as the
+(initially quite difficult)
+metacomposition in FFP, see
+ Backus (1978 section 13.3.2),
+which provided the inspiration.
+A simple device similar to <CODE>x</CODE> can be used for anonymous mutual recursion
+in Joy.
+The need to bypass the quotation by the <CODE>pop</CODE>s and the <CODE>dip</CODE>
+is eliminated in the <CODE>genrec</CODE>, <CODE>binrec</CODE> and <CODE>linrec</CODE>
+combinators discussed in the previous section,
+and also in some other special purpose variants.
+In the implementation no such quotation is ever constructed.
+<P>
+To return to rewriting,
+Joy has the extensional composition constructor concatenation
+satisfying the substitution rule.
+Joy has only one other constructor, quotation,
+but that is <EM>intensional</EM>.
+For example, altough the two stack functions
+<CODE>succ</CODE> and <CODE>1 +</CODE> are identical,
+the quotations <CODE>[succ]</CODE> and <CODE>[1 +]</CODE> are not,
+since for instance their <CODE>size</CODE>s or their <CODE>first</CODE>s
+are different.
+However, most combinators do not examine the insides
+of their quotation parameters textually.
+For these we have further substitution rule:
+If <CODE>Q1</CODE> and <CODE>Q2</CODE> are programs which denote the same function
+and <CODE>C</CODE> is such a combinator,
+then <CODE>[Q1] C</CODE> and <CODE>[Q2] C</CODE> denote the same function.
+In other words, <CODE>Q1</CODE> and <CODE>Q2</CODE> can replace each other
+in quotations embedded in suitable combinator contexts.
+Unsuitable is the otherwise perfectly good combinator
+<CODE>rest i</CODE>.
+For although <CODE>succ</CODE> and <CODE>1 +</CODE> denote the same function,
+<CODE>[succ] rest i</CODE> and <CODE>[1 +] rest i</CODE> do not.
+<P>
+The rewriting system gives rise
+to a simple <BF>algebra</BF> of Joy which is useful for programming
+and possibly for optimisations,
+replacing complex programs by simpler ones.
+In the first line below,
+consider the two equations in conventional notation:
+The first says that multiplying a number <CODE>x</CODE> by 2 gives the same
+result as adding it to itself.
+The second says that the <CODE>size</CODE> of a <CODE>reverse</CODE>d list
+is the same as the <CODE>size</CODE> of the original list
+in Joy algebra.
+The second line gives the same equations <EM>without variables</EM>
+in Joy.
+<PRE>
+        2 * x  =  x + x                 size(reverse(x))  =  size(x)
+        2  *   ==   dup  +              reverse  size   ==   size
+</PRE>
+Other equivalences express algebraic properties of various
+operations.
+For example the predecessor function is the inverse of the
+successor function, so their composition is the identity function <CODE>id</CODE>.
+The conjunction function <CODE>and</CODE> for truth values
+is idempotent.
+The less than relation <CODE><</CODE> is the converse of the
+greater than relation <CODE>></CODE>.
+Inserting a number with <CODE>cons</CODE> into a list of numbers
+and then taking the <CODE>sum</CODE> of that gives the same result
+as first taking the sum of the list and then adding the
+other number.
+<PRE>
+        succ  pred   ==   id            dup  and   ==   id
+        <   ==   swap >                 cons  sum   ==   sum  +
+</PRE>
+<P>
+Some properties of operations have to be expressed by combinators.
+In the first example below, the <CODE>dip</CODE> combinator
+is used to express the associativity of addition.
+In the second example below <CODE>app2</CODE> expresses one of the De Morgan laws.
+In the third example it expresses that <CODE>size</CODE>
+is a homomorphism from lists with concatenation
+to numbers with addition.
+The last example uses both combinators
+to express that multiplication distributes from the right
+over addition.
+Note that the program parameter for <CODE>app2</CODE>
+is first constructed from the multiplicand and <CODE>*</CODE>.
+<PRE>
+        [+]  dip  +   ==   +  +
+        and  not   ==   [not]  app2  or
+        concat  size   ==   [size]  app2  +
+        [+]  dip  *   ==   [*]  cons  app2  +
+</PRE>
+<P>
+The sequence operator <CODE>reverse</CODE> is a purely structural operator,
+independent of the nature of its elements.
+It does not matter whether they are individually replaced
+by others before or after the reversal.
+Such structural functions are called natural transformations
+in category theory and polymorphic functions
+in computer science.
+This is how naturality laws are expressed in Joy:
+<PRE>
+      [reverse]  dip  map   ==   map  reverse
+      [rest]  dip  map   ==   map  rest
+      [concat]  dip  map   ==   [map]  cons  app2  concat
+      [cons]  dip  map   ==   dup  [dip]  dip  map  cons
+      [flatten]  map  flatten   ==   flatten  flatten
+      [transpose] dip [map] cons map  ==  [map] cons map transpose
+</PRE>
+A matrix is implemented as a list of lists,
+and for mapping it requires mapping each sublist
+by <CODE>[map] cons map</CODE>.
+Transposition is a list operation
+which abstractly interchanges rows and columns.
+<P>
+Such laws are proved by providing dummy parameters to both sides
+and showing that they reduce to the same result.
+For example
+<PRE>
+        M  [P]  [transpose]  dip  [map]  cons  map
+        M  [P]  [map]  cons  map  transpose
+</PRE>
+reduce, from the same matrix <CODE>M</CODE>,
+along two different paths with two different
+intermediate matrices <CODE>N1</CODE> and <CODE>N2</CODE>,
+to a common matrix <CODE>O</CODE>.
+<P>
+To show that Joy is Turing complete,
+it is necessary to show that some universal language can
+be translated into Joy.
+One such language is the untyped lambda calculus
+with variables but without constants,
+and with abstraction and application as the only constructors.
+Lambda expressions can be translated into the <CODE>SK</CODE> combinatory
+calculus which has no abstraction
+and hence is already closer to Joy.
+Hence it is only required to translate
+application and the two combinators
+<CODE>S</CODE> and <CODE>K</CODE> into Joy counterparts.
+The <CODE>K</CODE> combinator applicative expression <CODE>K y x</CODE>
+reduces to just <CODE>y</CODE>.
+The <CODE>S</CODE> combinator applicative expression <CODE>S f g x</CODE>
+reduces to <CODE>(f x) (g x)</CODE>.
+The reductions must be preserved by the Joy counterparts,
+with quotation and composition as the only constructors.
+The translation from lambda calculus to combinatory calculus
+produces expressions such as <CODE>K y</CODE> and <CODE>S f g</CODE>,
+and these also have to be translated correctly.
+Moreover, the translation has to be such that
+when the combinatory expression is  applied to <CODE>x</CODE>
+to enable a reduction,
+the same occurs in the Joy counterpart.
+<P>
+Two Joy combinators are needed, <CODE>k</CODE> and <CODE>s</CODE>,
+defined in the semantics by the evaluation function <CODE>EvP</CODE> for atoms:
+<PRE>
+EvA( k, [Y X | S])  =  EvP(Y, S)
+EvA( s, [F G X | S])  =  EvP(F,[X | T])  where EvP(G, [X | S]) = T
+</PRE>
+In the above two clauses <CODE>Y</CODE>, <CODE>F</CODE> and <CODE>G</CODE>
+will be passed to the evaluation function <CODE>EvP</CODE> for programs,
+hence they will always be quotations.
+The required translation scheme is as in the first line below,
+where the primed variables represent the translations of their
+unprimed counterparts.
+<PRE>
+    K y   =>    ['y] k        S f g   =>    ['g] ['f] s
+    K y x => 'x ['y] k        S f g x => 'x ['g] ['f] s
+</PRE>
+The second line shows the translations for the combinatory
+expression applied to <CODE>x</CODE>.
+In both lines the intersymbol spaces
+denote application in the combinatory source
+and composition in the Joy target.
+This is what
+ Meertens (1989 p 72)
+asked for in the quote early in section 3.
+Since <CODE>x</CODE> is an argument,
+its translation <CODE>'x</CODE> has to push something onto the Joy stack.
+<P>
+Alternatively, <CODE>s</CODE>, <CODE>k</CODE> and others may be variously defined from
+<PRE>
+ k == [pop ] dip i            s == cons2 b
+ c == [swap] dip i        cons2 == [[dup] dip cons swap] dip cons
+ w == [dup ] dip i         cons == dup cons2 pop
+ b == [i   ] dip i            y == [dup cons] swap [b] cons cons i
+id == [] i                    x == dup i
+ i == dup dip pop         twice == dup b
+</PRE>
+The reduction rule for <CODE>K</CODE> requires that
+<CODE>'y ['x] k</CODE> reduce to
+<CODE>'x</CODE> which is <CODE>'y ['x] [pop] dip i</CODE>.
+The reduction rule for <CODE>S</CODE> requires
+<CODE>'x ['g] ['f] s</CODE> to reduce to <CODE>['x 'g] ['x 'f] b</CODE>,
+where <CODE>cons</CODE>ing the <CODE>'x</CODE> into the two quotations
+can be done by <CODE>cons2</CODE>.
+The definition of <CODE>y</CODE> is different from the one given
+earlier which relied on <CODE>b == concat i</CODE>.
+So, apart from the base <CODE>s</CODE> and <CODE>k</CODE>,
+another more Joy-like base is
+<CODE>pop</CODE>, <CODE>swap</CODE>, <CODE>dup</CODE>,
+the sole combinator <CODE>dip</CODE>,
+and either <CODE>cons</CODE> or <CODE>cons2</CODE>.
+Because of <CODE>x</CODE> or <CODE>y</CODE>, no recursive definitions
+are ever required.
+Since conditionals translated from the lambda calculus
+are certain to be cumbersome,
+a most likely early addition would be <CODE>ifte</CODE> and truth values.
+Instead of Church numerals there will be Joy numerals.
+For efficiency one should allow constants such as decimal numerals,
+function and predicate symbols in the lambda calculus,
+and translate these unchanged into <CODE>SK</CODE>
+or a richer calculus, then unchanged into Joy but in postfix order.
+<P>
+So far lists and programs can only be given literally
+or built up using <CODE>cons</CODE>,
+they cannot be inspected or taken apart.
+For this we need the <CODE>null</CODE> predicate and the <CODE>uncons</CODE>
+operator. Then <CODE>first</CODE> and <CODE>rest</CODE> can be defined as
+<CODE>uncons pop</CODE> and <CODE>uncons swap pop</CODE>.
+Other list operators and
+the <CODE>map</CODE>, <CODE>fold</CODE> and <CODE>filter</CODE> combinators
+can now be defined without recursion using <CODE>x</CODE> or <CODE>y</CODE>.
+<H1>Concluding remarks</H1>
+In all aspects Joy is still in its infancy
+and cannot compete with the mature languages.
+<P>
+Various extensions of Joy are possible.
+Since the functions are unary,
+they might be replaced by binary relations.
+This was done in an earlier but now defunct version
+written in Prolog which gave backtracking for free.
+Another possible extension is to add impure features.
+Joy already has <CODE>get</CODE> and <CODE>put</CODE>
+for explicit input and output,
+useful for debugging,
+it has <CODE>include</CODE> for libraries, a <CODE>help</CODE> facility
+and various switches settable from within Joy.
+There are no plans to add fully blown imperative
+features such as assignable variables.
+However,
+ Raoult and Sethi (1983)
+propose a purely functional version for a language
+of unary stack functions.
+The stack has an everpresent extra element
+which is conceptually on top of the stack,
+a state consisting of variable-value pairs.
+Most activity of the stack occurs below the state,
+only the <EM>purely functional</EM> <CODE>fetch X</CODE> and <CODE>assign Y</CODE>
+perform a read or write from the state and
+and they perform a push or a pop on the remainder of the stack.
+The authors also propose uses of <EM>continuations</EM> for
+such a language.
+Adapting these ideas to Joy is still on the backburner,
+and so are many other ideas like the relation
+of the stack to linear logic and the use of categorial grammars
+(nothing to do with category theory) for the rewriting.
+Since the novelty of Joy is for programming in the small,
+no object oriented extensions are planned
+beyond a current simple device for hiding
+selected auxiliary definitions from the outside view.
+<P>
+For any algebra, any relational structure,
+any programming language it is possible to have
+alternative sets of primitives and alternative sets of axioms.
+Which sets are optimal depends on circumstances,
+and to evolve optimal sets takes time.
+One only needs to be reminded of the decade
+of discussions on the elimination of <CODE>goto</CODE>
+and the introduction of a small, orthogonal and complete
+set of primitives for flow of control in imperative languages.
+The current implementation and library of Joy
+contain several experimental
+operators and combinators whose true value is still unclear.
+So, at present it is not known what would be an <EM>optimal</EM>
+set of primitives in Joy for writing programs.
+<P>
+It is easy enough to eliminate the intensionality of quotation.
+Lists and quotations would be distinguished textually,
+and operators that build up like <CODE>cons</CODE> and <CODE>concat</CODE>
+are allowed on both.
+But operators which examine the insides, like <CODE>first</CODE>,
+<CODE>rest</CODE> and even <CODE>size</CODE> are only allowed on lists.
+It is worth pointing out that the earlier list of primitives
+does not include or derive them.
+Now the substitution rule for quotation is simply this:
+if <CODE>Q1</CODE> and <CODE>Q2</CODE> denote the same program,
+then so do <CODE>[Q1]</CODE> and <CODE>[Q2]</CODE>.
+But maiming quotation in this manner comes at a price ---
+compilers, interpreters, optimisers,
+even pretty-printers
+and other important kinds of program processing programs
+become impossible,
+although one remedy might be to "certify and seal off"
+quotations after such processing.
+As G\"{o}del showed,
+any language that has arithmetic can,
+in a cumbersome way, using what are now called G\"{o}del numbers,
+talk about the syntax of any language, including its own.
+ Hofstadter (1985 p 449)
+was not entirely joking when,
+in response to Minsky's criticism of G\"{o}del for not inventing Lisp,
+he was tempted to say 'G\"{o}del <EM>did</EM> invent Lisp'.
+But we should add in the same tone
+'And McCarthy invented <CODE>quote</CODE>. And he saw that it <EM>was</EM> good'.
+<P>
+<PRE>
+
+J.W. Backus.
+    Can programming be liberated from the von {N}eumann style? a
+    functional style and its algebra of programs.
+    {\it Communications of the ACM}, 21(8):613, 1978.
+
+J.W. Backus, J. Williams, and E.W. Wimmers.
+    An introduction to the programming language {FL}.
+    In D.A. Turner, editor, {\it Research Topics in Functional
+    Programming}, page~219, Addison Wesley, 1990.
+
+M. Barr and C. Wells.
+    {\it Category Theory for Computer Science}.
+    Prentice Hall, 1990.
+
+R. Bird and O. de~Moor.
+    {\it Algebra of Programming}.
+    Prentice Hall, 1997.
+
+T.H. Brus, M.C.J.D. van~Eekelen, M.O. van~Leer, and M.J. Plasmejer.
+    Clean --- a language for functional graph rewriting.
+    In G. Kahn, editor, {\it Functional Programming Languages and
+    Computer Architecture}, page~367, Springer: LNCS vol. 272, 1987.
+
+G. Cousineau, P.-L. Curien, and M. Mauny.
+    The categorical abstract machine.
+    {\it Science of Computer Programming}, 9:203, 1987.
+
+H. Curry and R. Feys.
+    {\it Combinatory Logic}.
+    Volume~1, North Holland, 1958.
+
+G. Hains and C. Foisy.
+    The data-parallel categorical abstract machine.
+    In A. Bode, M. Reeve, and G. Wolf, editors, {\it PARLE '93 Parallel
+    Architectures and Languages Europe}, page~56, Springer: LNCS vol. 694, 1993.
+
+D. Hofstadter.
+    {\it Metamagical Themas: Questing for the Essence of Mind and
+    Pattern}.
+    Basic Books, 1985.
+
+L. Meertens.
+    Constructing a calculus of programs.
+    In J.L.A. {van de Snepscheut}, editor, {\it Mathematics of Program
+    Construction}, page~66, Springer: LNCS vol. 375, 1989.
+
+S.L. PeytonJones.
+    {\it The Implementation of Functional Languages}.
+    Prentice Hall, 1987.
+
+J.-C. Raoult and R. Sethi.
+    Properties of a notation for combining functions.
+    {\it J. Assoc. for Computing Machinery}, 30:595, 1983.
+
+M. {Sch\"{o}nfinkel}.
+    On the building blocks of mathematical logic.
+    In J. van~Heijenoort, editor, {\it From Frege to {G\"{o}del}},
+    page~357, Harvard University Press, 1967.
+    English Translation from the German original. Includes foreword by
+    W.V.O. Quine.
+
+</PRE>
+<P>
+Back to <A HREF="/philosophy/phimvt/j00syn.html">
+    Synopsis of Joy, a functional language </A>
+</HTML>

@@ -1,0 +1,1094 @@
+<HTML>
+
+<P>
+Back to
+<A HREF="/philosophy/phimvt/joy.html">
+Main page for the programming language Joy</A>
+<BR>
+
+<P>
+<HEAD>
+<TITLE> The prototype implementation of Joy </TITLE>
+The prototype implementation of Joy
+</HEAD>
+<BODY>
+<P>
+<I> by Manfred von Thun </I>
+<P>
+<P>
+Revised March 2003
+
+<P>Contents
+<OL>
+<LI><A HREF=#TOC_1>Introduction</A>
+<LI><A HREF=#TOC_2>Tokens</A>
+<LI><A HREF=#TOC_3>Factors and terms</A>
+<LI><A HREF=#TOC_4>Definitions and the main cycle</A>
+<LI><A HREF=#TOC_5>Initiating a Joy session</A>
+<LI><A HREF=#TOC_6>Input and output</A>
+<LI><A HREF=#TOC_7>Error messages</A>
+<LI><A HREF=#TOC_8>The libraries</A>
+<LI><A HREF=#TOC_9>Miscellaneous features</A>
+</OL>
+
+<P>
+<EM> Abstract </EM>
+Joy is a functional programming language
+which is not based on the application
+of functions to arguments
+but on the composition of functions.
+This paper serves as a manual for the current prototype implementation.
+Other implementations might differ in some details.
+<A NAME=TOC_1><H2><STRONG>Introduction</STRONG></H2></A>
+<P>
+The prototype implementation of Joy is written in unadorned C.
+It is not the first implementation,
+earlier ones have been written in Pascal, Prolog and Lisp.
+A small version in C was written by a group of students.
+The current prototype bears almost no resemblance
+to these earlier versions.
+<P>
+This manual includes references to John Cowan's (2001)
+major extension to the earlier version of the prototype,
+and also to some additions by Nick Forde.
+Their help has been invaluable,
+and it is a pleasure to acknowledge their support.
+I am also grateful to many other members of
+the "concatenative" mailing group for finding
+and fixing numerous bugs.
+
+<P>
+The source files for the current implementation are freely
+available, and can be downloaded in various formats by following
+links from the main page.
+<P>
+In the next three sections the following (extended) <EM> BNF notation</EM>
+is used for the grammar:
+A <EM> BNF production</EM> consists of a <EM> BNF nonterminal</EM>
+followed by <KBD>::=</KBD> (pronounced "can be"),
+followed by a BNF expression.
+A <EM> BNF expression</EM> consists of one or more BNF terms
+separated by the alternation symbol <KBD>|</KBD> pronounced "or".
+A <EM> BNF term</EM> consists of one or more BNF factors concatenated.
+A <EM> BNF factor</EM> can be a non-terminal, or a <EM> BNF terminal</EM>
+enclosed in double quotes.
+It can also be an English phrase.
+A BNF factor can also be a BNF expression
+enclosed in parentheses <KBD>()</KBD> to override precedences,
+or in curly braces <KBD>{}</KBD> to indicate zero or more repetitions,
+or in square brackets <KBD>[]</KBD> to indicate options.
+<P>
+The remainder of this paper gives a provisional manual
+for the prototype implementation.
+The focus of this manual is on general structure,
+and it leaves out many details that have been described elsewhere.
+Also, the manual should be understood to be provisional;
+other implementations of Joy might differ considerably.
+The first few sections to follow
+describe the syntax and the general semantics of this
+implementation of Joy.
+The later sections describe some very specific features
+that have not been covered elsewhere
+might not be present in other implementations.
+
+<A NAME=TOC_2><H2><STRONG>Tokens</STRONG></H2></A>
+
+<P>
+This section describes the <EM>lexicon</EM> of Joy,
+the individual <EM>token</EM>s which make up a program.
+<P>
+A Joy program consists of an ASCII file,
+which consists of lines of characters.
+Lines beginning with the escape character <KBD>$</KBD>
+are not processed by the Joy interpreter
+but are dispatched to the command shell.
+Under VMS
+typical uses are the following:
+<BR><PRE>
+        $  show  time
+        $  directory
+        $  edit  myfile.joy
+</PRE>
+Under Unix
+the corresponding uses are:
+<BR><PRE>
+        $  date
+        $  ls
+        $  vi  myfile.joy
+</PRE>
+When the request has been processed,
+control returns to the Joy system.
+<P>
+Lines not beginning with the escape character are processed
+by the Joy system.
+There are two styles of comments:
+parenthesis style and end-of-line style.
+The first kind of comments are enclosed in starred parentheses,
+<KBD>(*</KBD> and <KBDD>*)<KBD>,
+they may continue over several lines:
+<BR><PRE>
+        (*  this is a comment
+            continued on the second line *)
+</PRE>
+The second kind of comments occur after the hash-symbol <KB>#</KBD>
+up to the end of line; no terminator is required:
+<BR><PRE>
+            # this comment terminates at the end of this line
+         
+            # and this comment terminates here
+</PRE>
+Comments are not further processed
+but are treated just like blank space.
+<P>
+An input line consists of a number of <EM>token</EM>s.
+Some of these are single characters,
+the <EM>reserved character</EM>s.
+They are the two (square) brackets <KBD> [ </KBD> and <KBD> ] </KBD>,
+the two (curly) braces <KBD>{</KBD> and <KBD>}</KBD>,
+the semicolon <KBD> ; </KBD> and the period<KBD> . </KBD>:
+<BR><PRE>
+    reserved-character  ::=
+            "["  |  "]"  |  "{"  |  "}"  |  ";"  |  "."
+</PRE>
+<P>
+Another kind of token is that of <EM>integer constant</EM>,
+a string of one or more decimal digits <KBD>"0"</KBD> .. <KBD>"9"</KBD>
+possibly immediately preceded by a unary minus <KBD>"-"</KBD>.
+<BR><PRE>
+    integer-constant  ::=
+            [ "-" ]  ( "0" | "1" .. | "9" )  { "0" | "1" .. | "9" }
+</PRE>
+An integer constant can contain up to 10 digits
+but must not exceed the platform dependent maximum integer
+(generally $2^{32}-1$).
+<P>
+Apart from integers, the current implementation of Joy also
+has real numbers or "floats".
+In the simplest form
+a <EM>float constant</EM> consists of a string of one or more
+decimal digits, then a <EM>decimal point . </EM>
+and then at least one more decimal digit or possibly more.
+As for integer constants, a float constant can optionally
+be preceded by a unary minus.
+For scientific notation,
+a float constant can be followed by a scale factor,
+either of the letters "e" or "E" followed by one or more digits.
+<P>
+Instead of writing integers or floats in decimal notation,
+they can be preceded by "0" to signify octal notation
+(using digits "0" .. "7"),
+or preceded by "0x" pr "0X" to signify hexadecimal notation
+(using digits "0" .. "9" "A" .. "F").
+<P>
+Others tokens are <EM>string constant</EM>s and <EM>character constant</EM>s.
+Some character sequences beginning with the backslash <KBD>"\"</KBD> character
+inside string constants or character constants
+are treated as <EM>escaped character</EM>s.
+A character other than the backslash character is an ordinary character.
+<BR><PRE>
+    escaped-character  ::=
+               "\n"                     newline
+            |  "\t"                     tab
+            |  "\b"                     backspace
+            |  "\r"                     carriage return
+            |  "\f"                     formfeed
+            |  "\'"                     single quote
+            |  "\""                     double quote
+            |  "\ddd"                   ASCII whose value is ddd
+                                        where ddd are three decimal digits
+    ordinary-character  ::=
+            any character except "\"
+</PRE>
+A <EM>string constant</EM> 
+begins and ends with the double quote character <KBD>"</KBD>,
+enclosing any sequence of
+zero or more special characters or ordinary characters.
+A <EM>character constant</EM> begins with the single quote character <KBD>'</KBD>
+followed by a special character or an ordinary character;
+there is no closing single quote.
+<BR><PRE>
+    string-constant  ::=
+            '"'  { escaped-character | ordinary-character } '"'
+    character-constant  ::=
+            "'"  ( escaped-character | ordinary-character )
+</PRE>
+<P>
+Of the remaining tokens
+some are the <EM>reserved symbol</EM>s:
+<BR><PRE>
+    reserved-word  ::=
+	    "=="  |  "MODULE"  |  "PRIVATE"  |  "PUBLIC"  |  "END"
+                               |  "HIDE"     |  "IN"
+                                             |  "DEFINE"
+                                             |  "LIBRA"   
+</PRE>
+The reserved words "HIDE", "IN", "DEFINE" and "LIBRA"
+are currently synonyms for "PRIVATE" and "PUBLIC",
+and they may eventually declared obsolescent.
+<P>
+Any other token beginning with a printing character
+and possibly continuing with upper or lower case letters,
+digits or the three characters <KBD>"="</KBD>, <KBD>"_"</KBD> or <KBD>"-"</KBD>
+is an <EM>atomic symbol</EM>.
+<BR><PRE>
+    atomic-symbol  ::=
+        any printing character which is not a reserved character
+            or a digit or the single or double quote character
+        { letter  |  digit  |  "="  |  "_"  |  "-" }
+</PRE>
+<P>
+To summarise, here is the definition of <EM>token</EM>s:
+<BR><PRE>
+    token  ::=
+          reserved-character | reserved-word
+	| integer-constant | float-constant
+	| character-constant |  string-constant
+	| atomic-symbol
+</PRE>
+<A NAME=TOC_3><H2><STRONG>Factors and terms</STRONG></H2></A>
+<P>
+Individual tokens are used to built up two kinds of
+syntactic entities called <EM>factor</EM>s and <EM>term</EM>s.
+Their definitions are mutually recursive.
+<P>
+A <EM>factor</EM> can be a single token such as
+an atom or one of the three constants:
+integer constant, character constant or string constant.
+A factor can also consists of a (possibly empty)
+sequence of integer or character constants
+enclosed in the curly brace tokens <KBD>{</KBD> and <KBD>}</KBD>.
+Finally, a factor can also be
+a (possibly empty) term enclosed in the square bracket tokens
+<KBD>[</KBD> and <KBD></KBD>}.
+<BR><PRE>
+    factor  ::=
+           atomic-symbol
+        |  integer-constant | float-constant
+        |  character-constant | string-constant
+        |  "{"  { character-constant | integer-constant } "}"
+        |  "["  term  "]"
+</PRE>
+A <EM>term</EM> consists of zero or more factors.
+<BR><PRE>
+    term  ::=
+        { factor }
+</PRE>
+<P>
+For the <EM>semantics</EM> another classification is essential.
+Factors are either <EM>literal</EM>s or <EM>operator</EM>s or <EM>combinator</EM>s.
+A literal can be one of the two atomic symbols
+<KBD>"true"</KBD> or <KBD>"false"</KBD> -- these are the logical literals.
+A literal can also be one of the four constants
+and these are then called
+<EM>integer literal</EM>,
+ <EM>float literal</EM>, <EM>character literal</EM> or <EM>string literal</EM>.
+A literal can also consist of the braces enclosing
+characters or integers - these are the <EM>set literals</EM>.
+Finally a literal can consist of the brackets enclosing a term
+- these are the <EM>quotation literals</EM> or simply <EM>quotations</EM>.
+If the term consists just of literals,
+the factor is called a <EM>list list</EM> or just a <EM>list</EM>.
+<BR><PRE>
+    literal  ::=
+           "true"  |  "false"
+	|  integer-constant | float-constant
+	|  character-constant | string-constant
+        |  "{"  { character-constant | integer-constant } "}"
+        |  "["  term  "]"
+</PRE>
+The other atomic factors are either built in or defined.
+All built in atomic factors are either operators or combinators.
+Most defined atomic factors are likely also to be operators
+or combinators, but it is possible to define atomic symbols
+which are literals.
+<P>
+<EM>factor</EM>s and <EM>term</EM>s denote functions which take one argument and
+yield one value or result.
+The argument and the result consist principally of a <EM>stack of values</EM>,
+but have as minor components several <EM>input file</EM>s and one <EM>output file</EM>.
+The stack is normally a sequence of values
+of the kind denoted by constants
+and thus it resembles a
+list.
+But in (rather rare) cases the stack can contain operators
+or combinators.
+So the stack is essentially the same thing as a term.
+Most of the functions affect only the stack component.
+An empty term denotes the identity function.
+A non-empty term, consisting of one or more factors concatenated,
+denotes the composition of the functions denoted by the factors.
+The functions denoted by the factors are applied in the order
+in which the factors are written.
+<P>
+All literal factors denote functions yielding as result
+a stack component which is like the argument stack
+except that the value of the literal
+has been pushed on top of the stack.
+The operator factors expect as argument
+a stack which has to contain one or more values.
+They denote functions yielding as a result
+another stack which is like the argument stack
+except that the top few values have been replaced
+by others.
+The combinator factors are like the operator factors
+in that they expect a stack containing certain values.
+Specifically, the combinator factors expect
+a stack containing one or more quotations
+and possibly some other values.
+Combinators will execute the terms contained in the quotations.
+<P>
+The file
+<A HREF="/philosophy/phimvt/joy/plain-manual.html">
+Online manual (raw Joy1) </A>
+gives a very synoptic explanation
+of the inbuilt primitives of <EM>raw Joy1</EM> --
+that is, excluding anything defined in one or the other library.
+The arrow <KBD>-></KBD> indicates that the operator or combinator
+that is being described expects on top of the stack the items
+on the left of the arrow and returns a stack on top of which
+are the items on the right.
+The content of this file is identical in content with that obtained
+by the <KBD>manual</KBD> command.
+
+<A NAME=TOC_4><H2><STRONG>Definitions and the main cycle</STRONG></H2></A>
+Joy programs can be written using only the inbuilt atomic symbols,
+but it also possible to define new symbols.
+There are several kinds of reason why
+one might want to define new symbols:
+because they are needed in various places in the program,
+because they involve recursion or because
+they make the program more intelligible.
+The first two reasons are less compelling in Joy
+than in most other languages.
+<P>
+Often one needs not just one  <EM>definition</EM> but a <EM>sequence</EM>
+of definitions, and these are then separated by semicolons "<KBD>;</KBD>".
+<BR><PRE>
+    definition-sequence  ::=
+        definition  { ";"  definition }
+</PRE>
+<P>
+Definitions can be of two kinds:
+simple or compound.
+A <EM>simple definition </EM>consists of a user-chosen atomic symbol
+followed by the <KBD>==</KBD> token followed by a term:
+<BR><PRE>
+    simple-definition  ::=
+          atomic-symbol  "=="  term
+</PRE>
+A <EM>simple definition</EM> introduces the new atomic symbol
+into the current working dictionary.
+The initial dictionary is empty.
+After the definition the new symbol can be used,
+and if executed its effect is that of executing the term.
+<P>
+A <EM>compound definition</EM> consists of
+1) optionally the <KBD>MODULE</KBD> token followed by
+   an atomic symbol, then
+2) optionally either the <KBD>PRIVATE</KBD> token
+   followed by a definition sequence, then
+3) optionally the <KBD>PUBLIC</KBD> token
+   followed by a definition sequence, and
+finally either the "<KBD>.</KBD>" (period) token or the <KBD>END</KBD> token.
+At least one of the three options must be present:
+<BR><PRE>
+    compound-definition  ::=
+	[ "MODULE"  atomic-symbol ]
+	[ "PRIVATE"  definition-sequence ]
+	[ "PUBLIC"  definition sequence ]
+	( "." | "END" )
+</PRE>
+Instead of <KBD>PRIVATE...PUBLIC...</KBD> the combination
+<KBD>HIDE...IN...</KBD> can be used,
+and instead of <KBD>PUBLIC...</KBD>
+the syntax <KBD>LIBRA...</KBD> or <KBD>DEFINE...</KBD>
+can be used.
+These alternative symbols may become obsolscent in
+the future, but will be supported for the time being.
+<P>
+In the simplest case only the <KBD>PUBLIC</KBD>-part is present.
+In that case all <EM>definition</EM>s in the  <EM>definition sequence</EM> are
+entered into the symbol table.
+If there is a <KBD>PRIVATE</KBD>-part,
+then any <EM>definition</EM>s in its  <EM>definition sequence</EM> are
+entered into the symbol tableand are then available
+for use by the <KBD>PUBLIC</KBD>-part.
+However, the <KBD>PRIVATE<KBD> <EM>definition</EM>s are
+then obscured at the end of the <KBD>PUBLIC</KBD>
+ <EM>definition sequence</EM> and are then not available any further.
+If there is a <KBD>MODULE</KBD>-part,
+then all subsequent <KBD>PRIVATE</KBD> and <KBD>PUBLIC</KBD>
+ <EM>definition</EM> are visible as before except
+that at the end of the <KBD>PUBLIC</KBD>  <EM>definition sequence</EM>
+all <EM>definition</EM>s are obscured except the name of the module.
+In that case the <EM>definition</EM>s of the <KBD>PUBLIC</KBD>-part
+can only be accessed as factors by what is called
+"qualified access", in the form
+<BR><PRE>
+	m . f   or   m.f
+</PRE>
+where <KBD>m</KBD> and <KBD>f</KBD> are respectively the name
+of the module and of a function from its <KBD>PUBLIC</KBD>-part.
+<P>
+In many uses of Joy the initial input will be from the terminal keyboard
+and the output will be to the terminal screen.
+Operating systems will generally allow the input and the output
+to be redirected,
+so that the input comes from a disk file
+or the output goes to a disk file, or both.
+Whatever the actual input file is,
+it will consist of a a number of requests to the Joy system.
+A request is either a compound <EM>definition</EM> or it is a term
+followed by either the <KBD>END</KBD> token or just a period "<KBD>.</KBD>".
+<BR><PRE>
+    cycle  ==
+        {    compound-definition
+	  |  term  ( "END" | "." ) }
+</PRE>
+In the first case the compound <EM>definition</EM> is processed
+and control returns to the top level.
+In the second case the term is executed on the current stack.
+In the default mode the top value on the stack
+is then written the output file, normally the screen.
+If several terms are executed in succession,
+each term inherits from the preceding term the remainder of the stack.
+This can be useful when debugging larger programs.
+On the other hand,
+every library declaration clears the stack.
+The inbuilt factor <KBD>abort</KBD>
+returns to the main cycle,
+but it leaves the stack intact.
+
+<A NAME=TOC_5><H2><STRONG>Initiating a Joy session</STRONG></H2></A>
+A session with Joy is initiated by running
+the Joy interpreter in whatever ways the installation allows or requires.
+In most cases this will be done from the top level of the
+command language. In Unix it might simply be
+<BR><PRE>
+	$  joy
+</PRE>
+and under VMS it might be
+<BR><PRE>
+	$  RUN JOY
+</PRE>
+or, if "JOY" has been appropriately defined as a symbol,
+<BR><PRE>
+	$  JOY
+</PRE>
+The Joy interpreter will then announce itself with a brief banner.
+In the simplest case the Joy interpreter will then
+use the keyboard as the first input device and start
+the main cycle by taking input from there.
+Output will be to the screen.
+<P>
+However, although this is the simplest case, it is not the most common.
+If the current directory contains a file by the name "<KBD>usrlib.joy</KBD>",
+this will become the first input file, and the main cycle will start
+reading requests from there.
+Typically this file will contain some <EM>definition</EM>s
+specific to the particular user, or to the particular
+installation, or to the particular operating system.
+Typically this file will also contain a directive
+to continue by reading some of the standard libraries,
+or to continue with some other files.
+When these requests have been serviced, the main cycle
+will continue by reading inputs from the keyboard,
+unless the main cycle has been terminated before that happens.
+<P>
+Most operating systems allow input to and output from
+a program to be "redirected" to come not from the keyboard
+or go to the screen, but to come from and go to a file.
+In Unix the Joy interpreter can be run with the input
+redirected from a file, say "<KBD>my-input.joy</KBD>",
+like this:
+<BR><PRE>
+	$  joy  &lt;my-input.joy
+</PRE>
+It is also possible to redirect the output to go to,
+say "<KBD>my-output.txt</KBD>", like this:
+<BR><PRE>
+	$  joy  &lt;my-input.joy  >my-output.txt
+</PRE>
+The same can also be done in VMS, but here it is necessary
+that both redirections occur:
+<BR><PRE>
+	$  JOY /INPUT=MY-INPUT.JOY  /OUTPUT=MY-OUTPUT.TXt
+</PRE>
+With redirection of the input the behaviour of the Joy interpreter
+again depends on whether the current directory contains a file
+"<KBD>usrlib.joy</KBD>". If there is such  file, then that
+is read first, and only then the main cycle reads not from the
+keyboard but from the redirected file.
+If there is no file "<KBD>usrlib.joy</KBD>", the main cycle will
+immediately read from  the redirected file.
+<P>
+Under some operating systems it is possible to give what are called
+command line arguments to a program that is to run.
+This is very familiar under Unix,
+where the Joy interpreter might be run like this:
+<BR><PRE>
+	$  joy  P1  P2  P3
+</PRE>
+with in this case three arguments P1 P2 P3.
+Under VMS it is also possible to define programs as "foreign commands"
+by a <EM>definition</EM> (possibly in <KBD>login.com</KBD>):
+<BR><PRE>
+	$  JOY == "$DSK-XYZ[MYNAME.JOYDIR]JOY.EXE"
+</PRE>
+where <KBD>DSK-XYZ</KBD>, <KBD>MYNAME</KBD> and <KBD>JOYDIR</KBD>
+are respectively the user's disk, the user's name and the
+directory on which the executable interpreter is located.
+The joy interpreter is then run with parameters P1 P2 P3 by
+<BR><PRE>
+	$  JOY  P1  P2  P3
+</PRE>
+<P>
+When the Joy interpreter is run with command line arguments,
+the first parameter P1 must be a valid file name.
+The interpreter then attempts to open that file for
+reading, and if that attempt fails it exits.
+If the attempt succeeds, all further commands are taken
+not from standard input (possibly redirected) but from
+that file. This means that any explicit input from
+the "get" command can still come from standard input.
+<P>
+When Joy is run with command line parameters, say by
+<BR><PRE>
+	$  joy  test.joy  mary  42
+</PRE>
+the number of parameters is available by the operator
+<KBD>argc</KBD> which pushes an "argument count", in this case 3.
+Also, a list of the parameters is available by the operator
+<KBD>argv</KBD> which pushes the "argument vector",
+in this case the list <KBD>[ "test.joy"  "mary"  "42" ]</KBD>.
+<P>
+Under Unix and under VMS one can write files that are
+to be executed by the command interpreter and whose first line
+calls Joy and uses the rest of the file s input to Joy.
+In Unix these are "here documents", for VMS they are ".com" files.
+With the command line arguments to Joy there is another,
+more elegant, possibility using the "#!" facility
+(interpreted by the Unix <EM>exec</EM> system call).
+For Joy such a file would have to start with "#!joy"
+as the first line, and the rest of the file as input to Joy.
+The file
+<A HREF="/philosophy/phimvt/joy/gcd">gcd</A>
+is an example which uses Joy to compute the greatest common
+divisor. After it has been created, it has to be made executable
+with <PRE>$ chmod +x gcd</PRE> and thereafter it
+can be run with command lines such as<PRE>$ gcd 45 100</PRE>which
+will give the answer <KBD>5</KBD>.
+
+<A NAME=TOC_6><H2><STRONG>Input and output</STRONG></H2></A>
+<P>
+For many applications no explicit output operation is needed
+because in the default mode the main cycle will always
+write the value of the top of stack to the output stream.
+But sometimes explicit output is useful.
+There are two basic output operators: <KBD>put</KBD> will remove
+a value of any type from the stack and write it to the output stream.
+<KBD>putch</KBD> will remove a value of a numeric type (character or integer)
+and write it as a single ASCII character to the output stream.
+Other useful output operations are defined in the library.
+<P>
+In the default mode the Joy system will write the value of the
+top of stack item to the output.
+The mode is under the control of a flag with value 0 and 1.
+If the value is 0,
+no automatic output occurs.
+If the value is 1, the default,
+output of the top value occurs after the evaluation of every term
+in the main cycle.
+If the value is 2,
+the entire stack is output after such an evaluation.
+The value of this flag can be changed by the <KBD>setautoput</KBD> operator,
+typical use is
+<BR><PRE>
+        0  setautoput.
+</PRE>
+<P>
+Most Joy programs operate on a stack, several input files and one output file.
+The initial input comes either from the keyboard
+or it can be redirected to come from a diskfile,
+or it can be not from standard input but from
+a file specified as a command line argument.
+Often it is useful to include other files, typically diskfiles,
+in the input.
+Joy has an <KBD>include</KBD> operator for this purpose.
+It takes a string on the stack
+as a parameter and opens a file with that name and henceforth accepts
+input from there.
+A typical use might be
+<BR><PRE>
+        "test.joy"  include.
+</PRE>
+Included files can contain library <EM>definition</EM>s
+or <EM>term</EM>s to be executed.
+They can contain other <KBD>include</KBD> operators,
+up to a level of 10.
+When the end of an included file is reached,
+input reverts to the previous
+file which contained the relevant <KBD>include</KBD> operator.
+The include files therefore form a stack.
+<P>
+Users will often want their own selection of
+systems or private libraries read in automatically
+when the system starts up.
+For this purpose the Joy system always
+starts by checking whether a file "<KBD>usrlib.joy</KBD>"
+exists in the user's current directory.
+That file can be empty,
+but it can contain user specific <EM>definition</EM>s
+and it can contain particular <EM>term</EM>s to be executed.
+One such <EM>term</EM> might be a directive to
+include yet another file, perhaps
+<BR><PRE>
+        "inilib.joy"  include.
+</PRE>
+which transfers input to the <EM>initial library</EM>, <KBD>inilib.joy</KBD>,
+one of the systems libraries for Joy.
+These libraries are described in the next section.
+<P>
+If input does not come from the keyboard but from an include file,
+it is often useful to see the current input on the screen.
+Normally the Joy system does not echo keyboard or other input
+on the screen or output file,
+but it can be made to do so.
+Joy has an internal <EM>echoflag</EM>
+with values 0, 1, 2 or 3..
+The initial default value is 0,
+and then no echo occurs.
+If the value is 1,
+then input lines are echoed to the output without change.
+If the value is 2,
+then each line is preceded by a tab (ASCII 9) --
+this can help to distinguish echoed lines in the output from others.
+If the value is 3,
+then each tab is preceded by a line number specific to the current input file.
+When input reverts to an earlier file,
+the earlier line numbering is resumed.
+The value of the echo flag can be set
+by the operator <KBD>setecho</KBD>.
+Typically the value will be set by something like
+<BR><PRE>
+        2  setecho.
+</PRE>
+
+<A NAME=TOC_7><H2><STRONG>Error messages</STRONG></H2></A>
+<P>
+When a Joy program is processed, two kinds of programming errors can occur.
+The first kind can occur during reading of the input file.
+Because the syntax of Joy is so simple,
+there are only few possibilities for error.
+The second kind can occur at runtime when a term is being executed.
+These errors concern incorrect parameters for operators and combinators.
+Because there are many kinds of operators and combinators,
+the possibilities for runtime errors are great.
+<P>
+Errors of the first kind occur during reading a program.
+Since the input line is still available at that time,
+it is possible for the error message to point to the
+exact place at which the error occurred.
+If input comes from the initial input file,
+most likely the terminal, it is not repeated.
+In other case it is repeated,
+including its line number.
+The next line then consists just of an up-arrow <KBD>"^"</KBD>
+pointing to the error position.
+Following that is a line containing the specific error message.
+<P>
+The following (rare) message can be reported when reading tokens,
+it occurs when the second or third digit
+in an escaped character is missing.
+<BR><PRE>
+        digit expected
+</PRE>
+The following errors can occur when reading factors:
+<BR><PRE>
+        numeric expected in set
+        ']' expected
+        a factor cannot begin with this symbol
+</PRE>
+The following errors can occur when reading <KBD>HIDE</KBD> declarations:
+<BR><PRE>
+        IN expected in HIDE-definition
+        END expected in HIDE-definition
+</PRE>
+The following errors can occur when reading <EM>definition</EM>s:
+<BR><PRE>
+        atom expected at start of <EM>definition</EM>
+        == expected in <EM>definition</EM>
+</PRE>
+<P>
+All other errors are <EM>runtime error</EM>s.
+These are given in the form:
+<BR><PRE>
+    "run time error: "  MESSAGE  " needed for "  NAME
+</PRE>
+Two examples are
+<BR><PRE>
+    run time error: fewer include files needed for include
+    run time error: valid file name needed for include
+</PRE>
+In general, the <KBD>NAME</KBD> is the name of the operator or combinator
+whose execution was attempted but failed.
+The <KBD>MESSAGE</KBD> is often the same for many
+operators or combinators.
+It can be one of the following:
+<BR><PRE>
+        one parameter
+        two parameters
+        three parameters
+        four parameters
+        four parameters
+        quotation as top parameter
+        quotation as second parameter
+        quotation as third parameter
+        quotation as fourth parameter
+        two parameters of the same type
+        integer
+        two integers
+        numeric
+        numeric second parameter
+        non-zero operand
+        list
+        list as second parameter
+        user defined symbol
+        internal list
+        small numeric
+        non-empty set
+        non-empty string
+        non-empty list
+        smaller index
+        aggregate parameter
+        different type
+</PRE>
+<P>
+Some apparently inexplicable runtime errors can occur
+when reading an included library file which is syntactically
+correct and hence does not produce an error message as it is
+read in.
+The program can still contain a logical error which causes something
+unintended to be executed that produces a run time error.
+In that case it is helpful to use <KBD>setecho</KBD>
+to set the echoflag to <KBD>3</KBD>,
+resulting in line numbers to be printed as the included file is read in.
+There have been two occasions where this trick helped clear up a problem.
+<A NAME=TOC_8><H2><STRONG>The libraries</STRONG></H2></A>
+
+<P>
+The Joy system has a growing number of library files
+containing definitions which extend the core Joy language.
+he following is a brief description of the various libraries
+in the current distribution. The actual content of all the libraries
+is still subject to minor change, so these descriptions should only
+be taken to be a rough guide.
+<P>
+The first two libraries below are very atypical:
+the first because it does not even have to exist at all,
+the second because it is assumed by just about all other libraries
+and hence is quite non-specific.
+<P>
+<DL>
+<DT><A HREF="/philosophy/phimvt/joy/usrlib.joy">usrlib.joy</A><BR>
+<DD><P>This <EM>user library</EM> 
+is intended to be just an example of what a personalised
+file <KBD>usrlib.joy</KBD> might look like.
+When Joy is run with input coming from the <EM>standard input stream</EM>,
+on startup Joy will first determine whether there is a file
+<KBD>usrlib.joy</KBD> in the current directory.
+If there is, it is opened for reading. When the end is reached,
+or when there is no such file, the terminal or the designated inpu file
+is used.
+For any particular user this file might look very different --
+it might be empty, or it might might contain just a directive
+to include the library described next,
+or it might contain fewer or it might contain more definitions,
+or it might contain definitions of a very different kind.
+
+<DT><A HREF="/philosophy/phimvt/joy/inilib.joy">inilib.joy</A><BR>
+<DD><P>This  <EM>initial library</EM>
+contains a disparate collection of operators and combinators
+that are widely useful.
+Most are not dependent on particular types.
+Some of them might eventually be incorporated as primitives
+into the Joy language.
+Currently there are a few simple operators to help with
+explicit input and output,
+some operators for dates and times, some operators on
+predicates, and some useful combinators.
+Finally there are some utilities to help loading and
+managing libraries.
+All other libraries wiil ensure either directly or indirectly
+that this library is also loaded.
+</DL>
+
+<P>The following <EM>basic libraries</EM> contain definitions
+of still rather general operators and combinators
+but related to specific types or groups of types.
+<DL>
+<DT><A HREF="/philosophy/phimvt/joy/agglib.joy">agglib.joy</A><BR>
+<DD><P>This <EM>aggregate library</EM> contains definitions of
+operators and combinators most of which are applicable to all
+of the three <EM>aggregate</EM> datatypes such as
+<EM>list</EM>s, <EM>string</EM>s and <EM>set</EM>s.
+(Note that the next  library seqlib.joy
+ is specifically for sequence datatypes such as lists and strings.)
+<P>The agglib.joy library contains definitions of
+several unary and binary operators for building
+special cases of these datatypes, and for accessing parts
+of these datatypes.
+There are also some ("dipped") variants which operate
+not on the top of the stack but one below.
+The combinators in this library are mainly for traversing
+these datatypes.
+(At the end there are a few definitions of statistical
+operators, but in the future these might be moved to a more extensive
+statistics library.)
+
+<DT><A HREF="/philosophy/phimvt/joy/seqlib.joy">seqlib.joy</A><BR>
+<DD>This <EM>sequence library></EM> contains definitions of functions
+specific to the <EM>sequence datatypes</EM> such as lists and strings.
+When this library is loaded,
+it ensures that the <KBD>agglib.joy</KBD> library will also be loaded.
+<P>This library contains definitions
+of functions for reversing lists or strings,
+for flattening lists of sequences, for generating  lists of various
+subsquences of sequences, sorting and merging of sequences
+and inserting into and deleting from sequences.
+(At the end there are a few definitions of functions applicable
+to <EM>tree</EM>s or recursive lists,  but in the future
+these might be moved to a more extensive tree library.)
+
+<DT><A HREF="/philosophy/phimvt/joy/numlib.joy">numlib.joy</A><BR>
+<DD>This <EM>numerical library</EM> contains definitions of functions
+and combinators for numerical work
+on integers and floating numbers.
+some convenience predicates such as positive, negative, odd, even and prime,
+some standard functions such as factorial, fibonacchi,
+greatest common divisor and temperature conversion.
+Also included are methods for finding roots of quadratic equations
+and Newton's method for finding solutions of equations in one variable.
+
+<DT><A HREF="/philosophy/phimvt/joy/symlib.joy">symlib.joy</A>
+<BR><DD>This <EM>symbolic library</EM> is for
+purely symbolic manipulation of various notations.
+Currently all the definitions are for
+non-specific translations from one notation to another.
+<BR>There is a
+<A HREF="/philosophy/phimvt/joy/symtst.joy">symtst.joy</A>
+test file and its
+<A HREF="/philosophy/phimvt/joy/symtst.out">symtst.out</A>
+output.
+This library is currently used by the special libraries
+<KBD>grmlib.joy</KBD> and <KBD>plglib.joy</KBD>, see below.
+
+</DL>
+
+<P>
+The followiing <EM>special libraries</EM> contain definitions
+of operators and combinators that are very specific to a
+particular field or problem.
+
+<DL>
+
+<DT><A HREF="/philosophy/phimvt/joy/mtrlib.joy">mtrlib.joy</A>
+<BR><DD>A library for <EM>matrices</EM> and <EM>vector</EM> manipulation.
+The vectors are implemented as Joy lists,
+the matrices as lists of lists.
+Either may contain numeric or non-numeric elements.
+<BR>There is a
+<A HREF="/philosophy/phimvt/joy/mtrtst.joy">mtrtst.joy</A>
+testfile and its
+<A HREF="/philosophy/phimvt/joy/mtrtst.out">mtrtst.out</A>
+output.
+
+<DT><A HREF="/philosophy/phimvt/joy/tutlib.joy">tutlib.joy</A>
+<BR><DD>A library for writing <EM>interactive sessions</EM>
+such as <EM>tutorials</EM>.
+<BR>Currently there is only one such tutorial (for Joy):
+<A HREF="/philosophy/phimvt/joy/joytut.joy">joytut.joy</A><BR>
+There is a
+<A HREF="/philosophy/phimvt/joy/joytut.com">joytut.com</A>
+(pseudo) input and its
+<A HREF="/philosophy/phimvt/joy/joytut.out">joytut.out</A>
+output.
+
+<DT><A HREF="/philosophy/phimvt/joy/lazlib.joy">lazlib.joy</A><BR>
+<DD>A <EM>"lazy list" library</EM>,
+for unevaluated infinite or finite lists
+that will only be evaluated as needed.<BR>
+There is a
+<A HREF="/philosophy/phimvt/joy/laztst.joy">laztst.joy</A>
+test file and its
+<A HREF="/philosophy/phimvt/joy/laztst.out">laztst.out</A>
+output.
+
+<DT><A HREF="/philosophy/phimvt/joy/lsplib.joy">lsplib.joy</A> and
+<A HREF="/philosophy/phimvt/joy/lsplib.lsp">lsplib.lsp</A><BR>
+<DD>A small (eval-apply) Lisp interpreter in Joy,
+and a small library for this version of Lisp.<BR>
+There is a
+<A HREF="/philosophy/phimvt/joy/lsptst.joy">lsptst.joy</A>
+driver for the
+<A HREF="/philosophy/phimvt/joy/lsptst.lsp">lsptst.lsp</A>
+lisp input and its
+<A HREF="/philosophy/phimvt/joy/lsptst.out">lsptst.out</A>
+output.
+
+<DT><A HREF="/philosophy/phimvt/joy/plglib.joy">plglib.joy</A><BR>
+<DD>A library for <EM>propositional logic</EM> using
+semantic tableaux for determining whether a formula is a tautology
+(or for determining satisfiability).
+This library depends on (and loads) the
+<EM>symbolic library</EM> <KBD>symlib.joy<KBD>.<BR>
+There is a
+<A HREF="/philosophy/phimvt/joy/plgtst.joy">plgtst.joy</A>
+file of test input and its
+<A HREF="/philosophy/phimvt/joy/plgtst.out">plgtst.out</A>
+output.
+
+<DT><A HREF="/philosophy/phimvt/joy/grmlib.joy">grmlib.joy</A><BR>
+<DD>A <EM>grammar library</EM> for regular expressions
+and context free grammars. Both parsing and generating are
+supported.
+This library depends on (and loads) the
+<EM>symbolic library</EM> <KBD>symlib.joy<KBD>.<BR>
+There is a
+<A HREF="/philosophy/phimvt/joy/grmtst.joy">grmtst.joy</A>
+test input and its
+<A HREF="/philosophy/phimvt/joy/grmtst.out">grmtst.out</A>
+output.
+
+</DL>
+
+<P>
+The file
+<A HREF="/philosophy/phimvt/joy/allhelp.html">allhelp.html</A>
+is the output of the <EM>help</EM> command when all
+libraries have been loaded.
+It gives some impression of the size of the Joy implementation so far.
+
+<P>
+The file
+<A HREF="/philosophy/phimvt/joy/joylibs.tar.gz">joylibs.tar.gz</A>
+is a gzipped tar file of all *.joy libraries,
+input test files and output files.
+This file is automatically updated when there is any change to the
+Joy distribution.
+<P> <P>
+The following libraries are external to the main Joy web pages.
+They are part of the "files" 
+folder for the "concatenative" yahoo mailing group.
+To access them you need to join the group.
+
+<DL>
+
+<DT><A HREF="http://www.groups.yahoo.com/group/concatenative/files/rabbit">
+ rabbit</A><BR>
+<DD>A Joy to HTML translation library by Heiko Kuhrt,
+        it contains an extensive Joy manual in HTML format.
+
+<DT><A HREF="http://www.groups.yahoo.com/group/concatenative/files/mandel.html">
+mandel</A><BR>
+<DD>Several Mandelbrot programs in Joy by Nick Forde et. al.
+collected by Nick Forde.
+</DL>
+
+
+<A NAME=TOC_9><H2><STRONG>Miscellaneous features</STRONG></H2></A>
+<P>
+Joy has a <KBD>help</KBD> command to remind users of the names
+of currently defined symbols.
+The command does not expect any parameters on the stack,
+and it does not affect the stack.
+The effect is to write all user defined symbols and all
+inbuilt symbols to the output which is normally the screen.
+The list begins with the most recently defined symbols,
+typically those specially defined just for the current run,
+then the library symbols and finally the inbuilt symbols.
+The <KBD>help</KBD> command is just a factor:
+<BR><PRE>
+        help
+</PRE>
+<P>
+More details about a particular symbol can be obtained by
+the <KBD>helpdetail</KBD> operator.
+It expects a list of atoms on the stack
+and gives a short message for each symbol.
+If the symbol is defined,
+then the message consists of the <EM>definition</EM> for the symbol.
+If the symbols is inbuilt,
+then the message consists of a brief description of its usage.
+<BR><PRE>
+        [ swap step product ]  helpdetail.
+</PRE>
+asks for detailed help about the inbuilt
+operator <KBD>swap</KBD>, the inbuilt  combinator <KBD>step</KBD>
+and the defined operator <KBD>product</KBD>.
+The message is
+<BR><PRE>
+swap   :   X Y  ->  Y X
+  Interchanges X and Y on top of the stack.
+step   :   A [P]  ->  ...
+  Pushing successive members of aggregate A onto stack, executes P for each.
+product  ==
+  1  swap  [*]  step
+</PRE>
+For the inbuilt primitives
+the <KBD>-></KBD> arrow indicates the type of the symbol.
+To the left of the arrow are the required parameters
+in ascending order.
+To the right of the arrow are the results, where possible.
+If that cannot be specified in this simple notation,
+a dieresis <KBD>...</KBD> is used.
+<P>
+As described in section 2,
+Joy already allows escapes to the operating system at the level of input lines.
+Another such escape is at the level of Joy operators.
+The <KBD>system</KBD> operator expects a string as a parameter
+and passes that to the operating system.
+A typical use might be:
+<BR><PRE>
+        "directory"  system
+</PRE>
+The string parameter does not have to be pushed
+as a literal, it can equally well have been constructed.
+For example, the <KBD>system</KBD> operator can be used as in the following.
+My personal <KBD>USRLIB.JOY</KBD> contains the <EM>definition</EM>
+<BR><PRE>
+        editor  ==  "EDIT/TECO "
+</PRE>
+The general <KBD>STDLIB.JOY</KBD> file contains
+<BR><PRE>
+        edit  ==  dup editor swoncat system include
+</PRE>
+Then, to edit and immediately read in a file,
+say <KBD>TEST.JOY</KBD>,
+I can use the Joy command
+<BR><PRE>
+        "TEST.JOY"  edit
+</PRE>
+This calls the <KBD>edit</KBD> operator
+to make a duplicate of the string <KBD>"TEST.JOY"</KBD>.
+One copy is concatenated with the <KBD>editor</KBD> string,
+and the result passed on to the system.
+That will call my favourite editor to edit the file.
+When the editing is finished,
+the original string <KBD>"TEST.JOY"</KBD>
+is used to include the edited file.
+Note that other users might put a different name
+of their editor in their own <KBD>USRLIB.JOY</KBD>.
+For example, Unix users would probably put
+<BR><PRE>
+        editor  ==  "vi "
+</PRE>
+The <EM>definition</EM> of <KBD>edit</KBD> in <KBD>STDLIB.JOY</KBD>
+remains unchanged.
+<P>
+Back to
+<A HREF="/philosophy/phimvt/joy.html">
+Main page for the programming language Joy</A>
+
+</BODY>
+</HTML>

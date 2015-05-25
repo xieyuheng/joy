@@ -1,0 +1,1577 @@
+<TITLE>Recursion Theory and Joy</TITLE>
+<H1>Recursion Theory and Joy</H1>
+<I> by Manfred von Thun </I>
+<P>
+<EM>Abstract:</EM>
+
+Joy is a functional programming language which is not based on the
+application of functions to arguments but on the composition of
+functions.  Many topics from the theory of computability are
+particularly easy to handle within Joy.  They include the
+parameterisation theorem, the recursion theorem and Rice's theorem.
+Since programs are data, it is possible to define a Y-combinator for
+recursion and several variants.  It follows that there are
+self-reproducing and self-describing programs in Joy.  Practical
+programs can be written without recursive definitions by using several
+general purpose recursion combinators which are more intuitive and
+more efficient than the classical ones.
+
+<P>
+
+<EM>Keywords:</EM> functional programming, functionals, computability,
+diagonalisation, program = data, diagonalisation, self-reproducing and
+self-describing programs, hierarchy of recursion combinators,
+elimination of recursive definitions.
+
+<HR>
+
+<H2>Introduction</H2>
+
+This paper describes some aspects of the language from the perspective
+of recursive function theory.
+
+<P>
+
+A deep result in the theory of computability concerns the elimination
+of recursive definitions.  To use the stock example, the
+<EM>factorial</EM> function can be <EM> defined</EM> recursively in
+Joy by
+
+<PRE>
+        factorial  ==
+            [0 =] [pop 1] [dup 1 - factorial *] ifte
+</PRE>
+The definition is then <EM> used</EM> in programs like this:
+<PRE>
+        5
+        factorial
+</PRE>
+
+Because in Joy programs can be manipulated as data, the factorial
+function can also be computed recursively without a recursive
+definition, as follows:
+
+<PRE>
+        5
+        [ [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        [dup cons] swap concat dup cons i
+</PRE>
+
+The second line in this program does much the same as the body of the
+definition of factorial, but it is a quoted program.  The third line
+first transforms this into another longer quoted program which
+performs "anonymous" recursion, and then the final <KBD>i</KBD>
+combinator essentially dequotes this program causing its execution.
+
+<P>
+
+The third line implements Joy's counterpart of the <EM>Y
+combinator</EM> of the lambda calculus and of combinatory logic.
+Exactly the same line can be used to cause anonymous recursion of
+other functions which are normally defined recursively.
+
+<P>
+
+Joy has other combinators which make recursive execution of programs
+more succinct.  (Of course it is also possible in Joy to compute the
+factorial function more efficiently with iteration instead of
+recursion.)
+
+<P>
+
+The remainder of this paper deals with various aspects of the theory
+of computability, in particular the theory of <EM>recursive
+function</EM>s.  The next section gives a recursive definition of a
+recursion combinator.  Following that is a section dealing with
+various well known and elementary theorems from recursive function
+theory.  The next section then proves a fixpoint theorem for Joy.  The
+theorem implies the existence of self-reproducing programs, as shown
+in the following section.  There is also some discussion of the effect
+of evaluation order on termination.  The topic of the next section is
+Rice's theorem for Joy.  Then there is a section describing further
+self-reproducing and self-describing programs.  Another recursion
+combinator is constructed in the next section.  The final section
+discusses the more practical recursion combinators of Joy.  Previous
+knowledge of the field of recursion theory is not assumed.
+
+
+<H2>Recursion and its elimination</H2>
+
+The factorial function and the Fibonacci function are often used to
+illustrate two different recursion patterns, although both are most
+efficiently computed non-recursively.  This section follows tradition
+by using these two functions.  The ultimate aim is to show how
+<EM>recursive definition</EM>s of functions can be eliminated to
+obtain a (closed) form of a program for <EM>recursive execution</EM>.
+
+<P>
+
+In conventional notation the <EM>factorial</EM> function can be
+defined recursively like this:
+
+<PRE>
+    r-fac(n)  =  if n = 0 then 1 else n * r-fac(n - 1)
+</PRE>
+
+It is obvious that in conventional notation the definitions need the
+formal parameter <CODE>n</CODE>.  Joy was designed to eliminate formal
+parameters in definitions, and the factorial function would be defined
+in Joy like this:
+
+<PRE>
+    r-fac1  ==  [0 =] [pop 1] [dup 1 - r-fac1 *] ifte
+</PRE>
+
+The suffix <CODE>1</CODE> serves to distinguish this definition from a
+later version.  The RHS of the definition contains three quotations:
+an if-part, a then-part and an else-part.  These serve as parameters
+to the <KBD>ifte</KBD> combinator.  The if-part tests for equality
+with <CODE>0</CODE>, and if that is true then the then-part
+<KBD>pop</KBD>s off the parameter and replaces it with the result
+<CODE>1</CODE>.  Otherwise the else-part is executed, which
+<KBD>dup</KBD>licates the parameter, subtracts <CODE>1</CODE> from the
+top copy, calls <CODE>r-fac1</CODE> recursively on that and, when that
+call has returned with a value, multiplies that with the original.
+Using a more Joy-like idiom:
+
+<PRE>
+    r-fac1  ==  [null] [succ] [dup pred r-fac1 *] ifte
+</PRE>
+
+This uses the <KBD>null</KBD> predicate in the if-part, the
+<KBD>succ</KBD>essor function in the then-part and the
+<KBD>pred</KBD>ecessor operator in the else-part.
+
+<P>
+
+In conventional notation the <EM>Fibonacci</EM> function is defined
+recursively like this:
+
+<PRE>
+    r-fib(n)   =  if n &lt;= 1 then n else r-fib(n - 1) + r-fib(n - 2)
+</PRE>
+A more or less literal translation into Joy is the following:
+<PRE>
+    r-fib1  ==  [small] [] [pred dup [r-fib1] dip pred r-fib1 +] ifte
+</PRE>
+
+The if-part uses the <KBD>small</KBD> predicate, which for numeric
+parameters yields <CODE>true</CODE> for <CODE>0</CODE> and for
+<CODE>1</CODE>.  The then-part is the empty quotation <CODE>[]</CODE>,
+when executed it does nothing.  In the else-part <CODE>r-fib1</CODE>
+has to call itself twice, once each for the two parameters that have
+been prepared by <CODE>dup</CODE>.  The <KBD>dip</KBD> combinator
+applies the quotation <CODE>[r-fib1]</CODE> to the earlier version,
+and the later version, after <CODE>pred</CODE> has done its job, is
+handled directly by <CODE>r-fib1</CODE>.  A cleaner version is
+
+<PRE>
+    r-fib2  ==  [small] [] [pred dup pred [r-fib2] app2 +] ifte
+</PRE>
+
+The <KBD>app2</KBD> combinator applies the quoted
+<CODE>[r-fib2]</CODE> twice, to each of the two numbers on top of the
+stack.
+
+<P>
+
+It will help if the minor differences between the definitions of the
+factorial function and the Fibonacci function are eliminated.  In
+particular this concerns the patterns of the recursive calls.  In the
+body of <CODE>r-fac1</CODE> the direct recursive call has been
+replaced by its quotation and <KBD>app1</KBD>, which applies the
+quotation just once, to the single number.  So here are two other
+versions, they have aligned to make comparisons easier.
+
+<PRE>
+    r-fac2  ==  [ null] [succ] [     dup pred [r-fac2] app1 *] ifte
+    r-fib2  ==  [small] [    ] [pred dup pred [r-fib2] app2 +] ifte
+</PRE>
+
+The task of eliminating the recursion in the RHS of the definitions
+amounts to this: The occurrences of the quoted programs
+<CODE>[r-fac2]</CODE> and <CODE>[r-fib2]</CODE> have to be replaced by
+the quoted RHS.  But this will introduce those same quotes again, and
+these have to be replaced by the RHS, and so on <EM> ad
+infinitum</EM>.  It seems impossible.
+
+<P>
+
+One part of the solution is that the programs have to be given an
+extra parameter which is to be used when the else-part is executed.
+The extra parameter will have to contain whatever is necessary to
+enable the recursion inside the else-part.  But this means that the
+extra parameter will be somewhat in the way.  Consequently the if-part
+and the then-part need an extra <CODE>pop</CODE> to remove the
+unneeded parameter.  Furthermore, in the else-part any preparatory
+work before the actual recursion has to be done <EM> below</EM> the
+extra parameter using <CODE>dip</CODE>.  The one or two recursions are
+then to be effected by <CODE>app1</CODE> and <CODE>app2</CODE>,
+respectively.  The two programs now look like this:
+
+<PRE>
+?-fac:  [[pop  null] [pop succ] [[dup pred     ] dip app1 *] ifte] ?
+?-fib:  [[pop small] [pop     ] [[pred dup pred] dip app2 +] ifte] ?
+</PRE>
+
+To indicate that these are <EM> not</EM> recursive definitions,
+they are not given as definitions at all.
+The <CODE>?</CODE>-symbol is left unanalysed at this point,
+only this much can be said about it:
+<OL>
+<LI> it takes the entire quoted program as a parameter
+and then produces another quoted program with a special property.
+<LI> it then executes this resulting program.
+</OL>
+So the <CODE>?</CODE>-symbol denotes a strange combinator.
+<P>
+
+For comparison the three versions of the factorial program are listed here:
+<PRE>
+r-fac1 == [     null] [    succ] [ dup pred        r-fac1       *] ifte
+r-fac2 == [     null] [    succ] [ dup pred       [r-fac2] app1 *] ifte
+?-fac:   [[pop  null] [pop succ] [[dup pred     ] dip      app1 *] ifte] ?
+</PRE>
+And here are the three versions of the Fibonacci program:
+<PRE>
+r-fib1 == [    small] [        ] [ pred dup [r-fib1] dip r-fib1 +] ifte
+r-fib2 == [    small] [        ] [ pred dup pred  [r-fib2] app2 +] ifte
+?-fib:   [[pop small] [pop     ] [[pred dup pred] dip      app2 +] ifte] ?
+</PRE>
+<P>
+
+The recursion combinator must do this: At the point where
+<CODE>?-fac</CODE> uses <CODE>app1</CODE> and where <CODE>?fib</CODE>
+uses <CODE>app2</CODE> they expect <CODE>?-fac</CODE> and
+<CODE>?fib</CODE> on top of the stack.  That is why the if-parts and
+the then-parts each need an extra <CODE>pop</CODE>, and why the
+else-part has to do its initial work from a <CODE>dip</CODE>.  It all
+means that a recursion combinator has to supply the RHS to itself as
+an extra parameter.  In general, a recursion combinator expects a
+program <CODE>[P]</CODE> and it executes it in a special way.  It must
+call <CODE>P</CODE> but provide the extra parameter.  This is the
+defining law for a recursion combinator <CODE>?</CODE> :
+
+<PRE>
+        [P]  ?   ==   [[P] ?]  P
+</PRE>
+<P>
+
+How can a recursion combinator be defined?  This can be done
+recursively and non-recursively.  Once the <CODE>?</CODE> combinator
+is defined, it can be used to eliminate all other recursive
+definitions.  If a recursion combinator is defined recursively, then
+this would be the only recursive definition that is needed.  Here is a
+step-by-step development of such a definition.  The development is a
+fairly typical example of how one can write Joy programs
+systematically.  Start with the defining law:
+
+<PRE>
+        [P] ?
+    ==  [[P] ?]  P
+</PRE>
+
+In the second line <CODE>P</CODE> occurred twice, in quoted and
+unquoted form.  It will be simpler if it occurs in only one form, and
+that has to be the quoted form.  So, using the <CODE>i</CODE>
+combinator,
+
+<PRE>
+    ==  [[P] ?]  [P]  i
+</PRE>
+
+The two quotations are not exactly the same, but they can be produced
+from two identical quotations:
+
+<PRE>
+    ==  [[P ?]  [[P] ?]  first  i
+</PRE>
+
+Now the two identical quotations can be produced by the
+<CODE>dup</CODE> operator:
+
+<PRE>
+    ==  [[P] ?]  dup  first  i
+</PRE>
+All that is needed now is to extract <CODE>[P]</CODE> to the left:
+<PRE>
+    ==  [P]  [?]  cons  dup  first  i
+</PRE>
+
+In this construction each line was equivalent to its one or two
+neighbours.  Hence the first and the last lines of this construction
+are equivalent:
+
+<PRE>
+        [P]  ?   ==   [P]  [?]  cons  dup  first  i
+</PRE>
+
+Hence the following is a suitable recursive definition of a recursion
+combinator:
+
+<PRE>
+        ?   ==   [?]  cons  dup  first  i
+</PRE>
+<P>
+
+It is useful to think of the RHS as being composed of two parts: the
+first is
+
+<PRE>
+        [?]  cons  dup  first
+</PRE>
+
+and the second part is just <CODE>i</CODE>.  The first part is just a
+function which takes one quoted program as a parameter and produces
+two quoted programs as values:
+
+<PRE>
+        [P]  [?]  cons  dup  first
+        [[P]  ?]  dup  first                    (by cons)
+        [[P]  ?]  [[P]  ?]  first               (by dup)
+        [[P]  ?]  [P]                           (by first)
+</PRE>
+
+The second part of the definition is <CODE>i</CODE>, which effectively
+dequotes the topmost <CODE>[P]</CODE> and hence executes
+<CODE>P</CODE>.  So the next reduction step depend on what
+<CODE>P</CODE> actually does.
+
+<P>
+An alternative recursive definition may be constructed:
+<PRE>
+        [P]  ?
+    ==  [[P] ?]  P
+    ==  [[P] ?]  [P]  i
+    ==  [P]  [?]  cons  [P]  i
+    ==  [P]  [P]  [[?] cons]  dip  i
+    ==  [P]  dup  [[?] cons]  dip  i
+</PRE>
+The resulting alternative recursive definition is
+<PRE>
+        ?   ==   dup  [[?] cons]  dip  i
+</PRE>
+It follows that the two RHSs of the two equivalent definitions are equal:
+<PRE>
+        [?]  cons  dup  first  i   ==   dup  [[?] cons]  dip  i
+</PRE>
+
+(Note that cancellation of the trailing <CODE>i</CODE> combinator on
+both sides is not valid in general, though it would be valid here.)
+
+<P>
+
+We now have a recursive definition of recursion.  Computationally this
+is quite adequate, the recursive definition of any one of the
+<CODE>?</CODE> combinators really does make it possible to eliminate
+all other recursive definitions.  Some of the following sections deal
+with the elimination of recursion even for the recursion combinators.
+
+<P>
+
+The recursive definition of a recursion combinator can of course also
+be given in other languages.  For an example in the lambda calculus
+see <A HREF="REFS.HTML#{Henson87}">{Henson87}</A>.  For an example in ML see <A HREF="REFS.HTML#{Sokolowski91}">{Sokolowski91}</A>.
+
+<H2>Theorems in recursion theory</H2>
+
+The theory of <EM>computability</EM> treats various formalisms which
+independently aim to capture the essence of computation.  These
+formalisms include Turing machines, the lambda calculus, Markov
+algorithms, register machines, flow charts and any of the conventional
+programming languages.  Each formalism deals with various
+specifications: for the Turing formalism the specifications are
+particular Turing machines, for the Markov formalism the
+specifications are particular Markov algorithms, for the programming
+languages they are particular programs, and so on.  Some results in
+the theory concern connections between the formalisms, whereas others
+concern connections within the same formalism.
+
+<P>
+
+The main results in the theory can be divided into two groups: those
+concerned with the relationships between two such formalisms and those
+concerned with just one.
+
+<P>
+
+The principal results in the first group are that the formalisms are
+all equivalent, in this sense: Given any two formalisms, for any
+specification in the one formalism there is a specification in the
+other formalism such that the two specifications compute the same
+function.  Proofs of such results are always constructive, by
+exhibiting an algorithm which converts any specification in the one
+formalism into a specification in the other.
+
+<P>
+
+Results in the second group concern just one formalism and often take
+this form: For any specification S1 having a certain property there is
+another specification S2 such that the two specifications S1 and S2
+are related in some special way.  Proofs are again constructive, by
+exhibiting algorithms for converting S1 into S2.
+
+<P>
+
+The algorithms of both groups can be expressed in any of the
+formalisms.  The constructive proofs then look like this: There is a
+specification S (in formalism F) with the capacity of transforming any
+specification S1 (in formalism F1) into a specification S2 (in
+formalism F2, not necessarily different from F1) such that the two
+specification S1 and S2 are related in a special way.  Since the
+formalisms are universal, the algorithms can be written in the
+formalism itself, as another specification S.  The results then take
+this form: There is a specification S such that for every
+specification S1 the result of applying S to S1 yields the required
+S2.
+
+<P>
+
+Historically the theory of computability has been mainly couched in
+terms of <EM>recursive function</EM>s, a collection of functions built
+from a small base by means of a small number of constructors.  These
+functions take natural numbers as arguments and give natural numbers
+as values.  By means of a theoretically elegant (but computationally
+unfeasible) mapping called G&#246;del numbering, linguistic entities
+such as expressions can be assigned a unique number.  In this way the
+functions can be made to "talk about themselves".  Any syntactic
+operation on linguistic entities has a counterpart purely arithmetical
+operation on natural numbers which are the G&#246;del numbers of these
+entities.  The theorems are basic to any proper understanding of the
+the foundations of computer science.  But the proofs, when not
+hand-waiving by appeals to Church's thesis, tend to be forbidding.
+
+<P>
+
+The ease of writing S depends crucially on how well the formalism can
+handle its own specifications.  Often it is necessary to use encodings
+of S1 and S2 into a form which the formalism can handle.  In the worst
+case the encodings are truly ghastly.  In the best case the formalism
+can handle its own specifications very naturally.  This is sometimes
+expressed by the slogan <EM>program = data</EM>.  Most formalisms fare
+badly on this, including most programming languages.
+
+<P>
+
+Some languages can treat their own programs as data; they are Lisp,
+Snobol, Prolog and their descendants, some macro generators and the
+command languages based on them.  Joy does it at least as well.  In
+these languages programs can operate on other programs or on other
+data to produce other programs which may then be executed.  Because of
+this, arithmetisation is not necessary, functions can take programs
+rather than G&#246;del numbers of programs as arguments, and
+metatheoretic proof become much easier.  <A HREF="REFS.HTML#{Phillips92}">{Phillips92}</A> writes
+
+<BLOCKQUOTE>
+One might wonder how differently recursion theory might be viewed
+if it had arisen out of practical developments instead of predating them.
+</BLOCKQUOTE>
+
+Indeed, one might speculate how much more natural computability theory
+would have been if Lisp has been invented thirty years earlier.
+Readers might want to pursue this topic, see the discussion in
+<A HREF="REFS.HTML#{Hofstadter85}">{Hofstadter85}</A> starting on p 444, and his very startling conclusion
+on p 449.
+
+<P>
+
+In Joy many metatheoretic proofs are easier still because there are no
+named formal parameters.  Consequently the difficult operation of
+substituting actual parameters for formal parameters does not occur,
+and everything is algebra.  Reasoning about Joy programs will now be
+illustrated with a number of classical theorems.
+
+<P>
+
+A simple form of the <EM>parametrisation theorem</EM> states: there is
+a recursive function taking the G&#246;del number of an <EM>
+n</EM>-ary function F1 as one argument and taking the G&#246;del
+number of a numeral as a further argument such that the value of this
+recursive function is the G&#246;del number of an <EM> n-1</EM>-ary
+function F2 which is obtained by substituting the value of the numeral
+for the first argument of F1.
+
+<P>
+
+Here is the same theorem for Joy.  An <EM>operand</EM> is a numeral
+(or any other constant) or a quotation.
+
+<PRE>
+        For any program P and operand X
+            there is a program Q such that
+                Q   ==   [Q] i  ==  X  P
+</PRE>
+
+The required program <CODE>Q</CODE> is just the concatenation.  But
+the theorem can be strengthened:
+
+<PRE>
+        There is a program O such that
+            for any program P and operand X
+                there is a program Q such that
+                    X [P] O  ==  [Q] and
+                    Q  ==  [Q] i  ==  X [P] i  ==  X P
+</PRE>
+
+The required program <CODE>O</CODE> is <CODE>cons</CODE>:
+<PRE>
+        X [P] O  ==  X [P] cons  ==  [X P]  ==  [Q]
+</PRE>
+
+The theorem is rather trivial in Joy.  The formalisation of the proof
+is an overkill.  However, many proofs later on will have the same
+structure, and it may help to get used to that.
+
+<P>
+
+The parametrisation theorem generalises to any number <EM> m</EM> of
+arguments that are parametrised.  Consequently it is often called the
+<EM>S-m-n theorem</EM>, see <A HREF="REFS.HTML#{Rogers67}">{Rogers67}</A>.  The "S" stands for
+"substitution" - it means that <EM> m</EM> of the <EM> n</EM> formal
+parameters are replaced by fixed values.  In Joy notation repeated
+<CODE>cons</CODE> operations can parameterise for any <EM> m</EM>,
+simply by repeating <CODE>cons</CODE> <EM> m</EM> times.
+
+<P>
+
+In recursive function theory it is possible for functions to take
+other functions as parameters, and since functions are untyped, they
+can take themselves as parameter.  One consequence ot the S-m-n
+theorem is the <EM>diagonalisation theorem</EM>: There is a recursive
+function taking as argument the G&#246;del number of a function which
+takes at least one parameter, and giving as value the G&#246;del number
+of the function obtained from the given one by substituting itself for
+the parameter.
+
+<P>
+
+Again, the counterpart in Joy is trivial.
+
+<PRE>
+        For any program P
+            there is a program Q such that
+                [Q] i  ==  Q  ==  [P] P
+</PRE>
+
+The required quoted <CODE>[Q]</CODE> is <CODE>[[P] P]</CODE>.  The
+stronger form is:
+
+<PRE>
+        There is a program O such that
+            for any program P
+                there is a program Q such that
+                    [P] O  ==  [Q]  and
+                    [Q] i  ==  Q  ==  [P] dup i  ==  [P] P
+</PRE>
+
+The required program <CODE>O</CODE> is <CODE>dup cons</CODE>.  Proof:
+
+<PRE>
+        [P] O  ==  [P] dup cons  ==  [P] [P] cons  ==  [[P] P]  ==  [Q]
+        [Q] i  ==  [[P] P] i  ==  [P] P  ==  Q
+</PRE>
+So in Joy the short program
+<PRE>
+        dup  cons
+</PRE>
+implements diagonalisation.
+<P>
+It may help to see diagonalisation in action for a small program:
+<PRE>
+        [dup reverse concat] dup cons i
+    ==  [dup reverse concat] [dup reverse concat] cons i       (by dup)
+    ==  [[dup reverse concat] dup reverse concat] i             (by cons)
+    ==  [dup reverse concat] dup reverse concat                 (by i)
+    ==  [dup reverse concat] [dup reverse concat] reverse concat(by dup)
+    ==  [dup reverse concat] [concat reverse dup] concat        (by reverse)
+    ==  [dup reverse concat concat reverse dup]                 (by concat)
+</PRE>
+
+So the program <CODE>[dup reverse concat]</CODE> diagonalised and run
+produces its own palindrome.  Most programs cannot be self-applied
+because it would breach typing.  But here are a few, readers might
+like to see what they do:
+
+<PRE>
+        []
+        [reverse 42]
+        [42 pop]
+        [pop]
+        [dup cons]
+</PRE>
+<P>
+
+In <A HREF="REFS.HTML#{Smullyan61}">{Smullyan61}</A> theory of formal systems of (character) strings, the
+<EM> norm</EM> or diagonalisation of a string <CODE>X</CODE> is
+defined to be <CODE>X</CODE> followed by its own G&#246;del number in
+dyadic notation.  In Joy the detour via G&#246;del number is eliminated
+by using quotations.
+
+<P>
+
+We now consider two reductions.  The first is this:
+
+<PRE>
+        [P]  dup  i
+    ==  [P]  [P]  i                     (by dup)
+    ==  [P]   P                         (by i)
+</PRE>
+The second is this:
+<PRE>
+        [P]  dup  cons  i
+    ==  [P]  [P]  cons  i               (by dup)
+    ==  [[P]  P]  i                     (by cons)
+    ==  [P]  P                          (by i)
+</PRE>
+
+So the two reductions come to the same, and hence their first lines
+are identical:
+
+<PRE>
+        [P]  dup  i   ==   [P]  dup  cons  i
+</PRE>
+But this holds for all <CODE>[P]</CODE>. So we may infer
+<PRE>
+        dup  cons  i   ==   dup  i
+</PRE>
+
+
+<H2>The fixpoint theorem and the y combinator</H2>
+
+An important result in computability is
+the <EM>recursion theorem</EM>, see for example
+<A HREF="REFS.HTML#{Rogers67}">{Rogers67}</A>.
+It states:
+<BLOCKQUOTE>
+For every function  P  there is a G&#246;del number of a function  Q 
+such that the result of applying the function  P
+to the G&#246;del number of  Q  is the G&#246;del number
+of a function identical with  Q.
+</BLOCKQUOTE>
+
+The theorem says that for every function P which is used to edit code
+for computing functions, there is a program Q which will compute the
+same function before and after the editing.  So Q is a fixpoint, a
+program not affected by P.  Fixpoint theorems are about programs
+<CODE>P</CODE> (rather than about the functions which they compute).
+
+<P>
+Here is an equivalent version for Joy:
+<PRE>
+        For any program P
+            there is a program Q such that
+                [Q] i   ==   Q   ==   [Q] P
+</PRE>
+The required program <CODE>Q</CODE> is
+<PRE>
+        [dup cons P] dup cons P
+</PRE>
+The proof is as follows:
+<PRE>
+        [            Q           ]  i
+    ==  [[dup cons P]  dup cons P]  i                   (def Q)
+    ==   [dup cons P]  dup cons P                       (by i)
+    ==   [dup cons P] [dup cons P] cons P               (by dup)
+    ==  [[dup cons P]  dup cons P]  P                   (by cons)
+    ==  [            Q           ]  P                   (def Q)
+</PRE>
+<P>
+
+The theorem may be strengthened.  The transformation from
+<CODE>P</CODE> to <CODE>Q</CODE> can be done by a simple program
+<CODE>O</CODE>:
+
+<PRE>
+        There is a program O such that
+            for any program P
+                there is a program Q such that
+                    [P] O   ==   [Q]   and
+                    [Q] i   ==   Q   ==   [Q] P
+</PRE>
+The required program <CODE>O</CODE> is
+<PRE>
+        [dup cons]  swap  concat  dup  cons
+</PRE>
+The proof is as follows:
+<PRE>
+        [P] O
+    ==  [P]  [dup cons]  swap  concat  dup  cons        (def O)
+    ==  [dup cons]  [P]        concat  dup  cons        (by swap)
+    ==  [dup cons P]                   dup  cons        (by concat)
+    ==  [dup cons P]  [dup cons P]          cons        (by dup)
+    ==  [[dup cons P] dup cons P]                       (by cons)
+    ==  [Q]                                             (def Q)
+</PRE>
+
+The fixpoint finding program <CODE>O</CODE> is useful: henceforth it
+will be called the <KBD>fix</KBD> operator.  We also define the
+<KBD>y</KBD> combinator for Joy:
+
+<PRE>
+        y   ==   fix  i
+</PRE>
+
+This is the Joy counterpart of Curry's "paradoxical" <EM>Y
+combinator</EM> (uppercase), see <A HREF="REFS.HTML#{Curry58}">{Curry58}</A>.  This combinator is well
+known in the literature on the lambda calculus and on combinatory
+logic.
+
+<P>
+
+The recursion theorem traces its ancestry to Epimenides, Russell and
+Grelling (for <CODE>[P]</CODE> put <CODE>[i not]</CODE>, and to
+G&#246;del. In its general form it is due to Kleene.  Its proof is very
+cumbersome in just about all formalisms.  As can be seen from the
+above, in Joy the proof is very simple.
+
+<P>
+
+The S-m-n theorem is the basis for <EM>partial evaluation</EM> or
+<EM>program specialisation</EM>.  A special case for this is the
+partial evaluator <EM>mix</EM> which can transform an interpreter into
+a compiler, and can transform itself into a compiler generator.
+<A HREF="REFS.HTML#{Jones92}">{Jones92}</A> shows that such transformations can be done realistically
+only if the partial evaluator has primitives in terms of which the
+fixpoint constructions of the recursion theorem can be implemented
+efficiently.  The two primitives chosen are in fact very close to
+Joy's <CODE>i</CODE> combinator and quotation.
+
+<P>
+
+The recursion theorem leads in a few steps to Rice's theorem, see
+<A HREF="REFS.HTML#{Rogers67}">{Rogers67}</A>, which encapsulates all the bad news of computability
+theory: for example the <EM>halting problem</EM>, or the impossibility
+of writing programs which check other programs - implementation,
+student exercises - for correctness.
+
+<H2>Some simple cases</H2>
+
+The theorem, in both forms, speaks of <EM> all</EM> programs
+<CODE>P</CODE>.  It is of some interest to see what happens when some
+simple actual programs are chosen.  Two particularly simple programs
+are
+
+<OL>
+<LI> the empty program, which computes the identity function,
+and 
+<LI> the <CODE>i</CODE> combinator program,
+which dequotes and executes a program on top of the stack.
+</OL>
+<P>
+
+<OL>
+
+<LI> A frequently paraded corollary of the recursion theorem is the
+existence of <EM>self-reproducing program</EM>s.  When run, these
+program produce a replica of themselves.  A suitably general
+definition of self-reproducing programs is this: a program
+<CODE>S</CODE> is self-reproducing if this conditions holds:
+
+<PRE>
+        S  i   ==   S
+</PRE>
+
+Note that <CODE>S</CODE> is allowed to be arbitrarily complex, it does
+not have to be just a quoted program.  Such programs are obtained from
+the recursion theorem by making <CODE>P</CODE> compute the identity
+function.  In Joy this is represented most simply by the empty
+program, in quoted form <CODE>[]</CODE>.  (Alternatively, it is
+represented by the program <CODE>id</CODE>, in quoted form
+<CODE>[id]</CODE>.)
+
+<PRE>
+        There is a program Q such that
+            [Q] i   ==   [Q]
+</PRE>
+Proof: let <CODE>Q</CODE> be the program
+<PRE>
+            [dup cons] dup cons
+</PRE>
+Then the derivation is as follows:
+<PRE>
+        [[dup cons]  dup cons]  i
+    ==   [dup cons]  dup cons                           (by i)
+    ==   [dup cons] [dup cons] cons                     (by dup)
+    ==  [[dup cons]  dup cons]                          (by cons)
+</PRE>
+
+Readers might like to be reminded of a self-replicating C-program:
+
+<PRE>
+
+p="p=%c%s%c;main(){printf(p,34,p,34);}";main(){printf(p,34,p,34);}
+</PRE>
+(Author unknown. Proving correctness is not easy.)
+<P>
+
+Related to self-reproducing programs are <EM>self-describing
+program</EM>s.  A program <CODE>S</CODE> is self-describing if running
+it produces a description of it.  In Joy a program <CODE>S</CODE> is
+self-describing if this condition holds:
+
+<PRE>
+        S   ==   [S]
+</PRE>
+Here is a self-describing program:
+<PRE>
+        [dup cons] dup cons
+    ==  [dup cons] [dup cons] cons                      (by dup)
+    ==  [[dup cons] dup cons]                           (by cons)
+</PRE>
+<P>
+
+<LI> The other simple program to investigate is the <CODE>i</CODE>
+combinator.  Then <CODE>[P]</CODE> is <CODE>[i]</CODE>, and
+<CODE>[Q]</CODE> is <CODE>[[dup cons i] dup cons i]</CODE>.  This is
+what happens:
+
+<PRE>
+        [[dup cons i]  dup cons i]  i
+    ==   [dup cons i]  dup cons i                       (by i)
+    ==   [dup cons i] [dup cons i]  cons i              (by dup)
+    ==  [[dup cons i]  dup cons i]  i                   (by cons)
+</PRE>
+
+So this is a program that runs forever.  This is the Joy counterpart
+of what in the lambda calculus is selfapplication selfapplied.  In
+both the reductions do not terminate.  In the lambda calculus the rule
+used is beta-reduction, the substitution of actual for formal
+parameters.  In Joy there are no formal parameters, just algebraic
+simplification.
+
+<P>
+
+The <CODE>dup cons</CODE> combination occurs so frequently that it is
+worth introducing an operator <KBD>duco</KBD> defined by
+
+<PRE>
+        duco   ==   dup  cons
+</PRE>
+
+This will make proofs shorter both horizontally (because programs are
+shorter) and vertically (because two steps are condensed into one).
+
+<P>
+
+<LI> 
+The next kind of program is with <CODE>[P]</CODE> =
+<CODE>dup</CODE>.  Then <CODE>[Q]</CODE> is the quotation in the first
+line below, and execution is as follows:
+
+<PRE>
+        [[duco dup] duco dup]  i
+    ==   [duco dup] duco dup                            (by i)
+    ==  [[duco dup] duco dup] dup                       (by duco)
+    ==  [[duco dup] duco dup] [[duco dup] duco dup]     (by dup)
+</PRE>
+
+So this is an example of a program which when run produces two copies
+of itself.  The program in the second line is another
+<EM>self-describing program</EM>, it produces two copies of itself.
+
+<P>
+
+<LI> 
+
+The next program uses <CODE>[P]</CODE> = <CODE>dup i</CODE>.  Then
+execution starts like this:
+
+<PRE>
+        [[duco dup i] duco dup i]  i
+    ==   [duco dup i] duco dup i                                (by i)
+    ==  [[duco dup i] duco dup i] dup i                         (by duco)
+    ==  [[duco dup i] duco dup i] [[duco dup i] duco dup i] i   (by dup)
+</PRE>
+
+So this is another program that runs forever.  In addition it leaves
+earlier copies of itself on the stack.  In an implementation it must
+run out of stack space.  The program in the second line is again
+self-describing, but it never finishes what would be a description of
+infinitely many copies of itself.
+
+<P>
+Another program that does much the same is
+<PRE>
+        [[duco dup dip] duco dup dip]
+</PRE>
+<P>
+
+<LI> 
+
+In the introduction a program was given which computes the factorial
+function without being defined recursively.  Here are the first few
+steps in the execution of that program, those that are independent of
+the numeric parameter that is provided to the program.  To save space,
+the <CODE>duco</CODE> operator is used.
+
+<PRE>
+        [ [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        y
+    ==  [ [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        fix  i                                                  (by y)
+    ==  [ [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        [duco] swap concat duco  i                              (def fix)
+    ==  [duco] [ [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        concat duco  i                                          (by swap)
+    ==  [ duco [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        duco  i                                                 (by concat)
+    ==  [[ duco [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+           duco [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        i                                                       (by duco)
+    ==  [ duco [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        duco [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte     (by i)
+    ==  [[ duco [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+           duco [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte ]
+        [pop 0 =] [pop pop 1] [[dup 1 -] dip i *] ifte          (by duco)
+</PRE>
+
+At this point the numeric parameter for the computation will be
+needed.  The <CODE>ifte</CODE> combinator will execute its if-part.
+That results in the long two-line quotation being popped off the stack
+and the parameter being compared with 0.  If that evaluates to
+<CODE>true</CODE>, the then-part is executed with the parameters and
+the two-line quotation still on top of the stack, The then-part pops
+both and replaces them by 1.  But if the if-part returns
+<CODE>false</CODE>, the else-part is executed, again with the
+parameter and the two-line quotation on top of the stack.
+
+<P>
+
+First the two-line quotation is set aside by <CODE>dip</CODE>, the
+parameter is duplicated and the top copy decremented.  Only then the
+two-line quotation will be executed by <CODE>i</CODE>.  The effect is
+to construct a clone of itself with <CODE>duco</CODE>, pushing the
+same if-part, then-part and else-part for the contained
+<CODE>ifte</CODE>.  When that eventually returns, the old parameter
+and above it the factorial of the decremented parameter copy are
+finally multiplied to give the required factorial of the original
+parameter.
+
+</OL>
+
+<H2>Evaluation order</H2>
+
+Most theoretical and practical programming languages use <EM>formal
+parameter</EM>s in definitions of functions (and procedures).  These
+functions are called with expressions as the <EM>actual
+parameter</EM>s.  There are two ways of doing this: <EM>normal
+order</EM>, also known as <EM>call by name</EM>, and <EM>applicative
+order</EM>, also known as <EM>call by value</EM>.  In normal order the
+unevaluated expressions are substituted for the formal parameters, and
+the expressions will be evaluated only if the body of the function
+requires it.
+
+<P>
+
+In applicative order the expressions are evaluated first and that
+value is substituted for the formal parameter.  If the value of a
+parameter expression is used repeatedly in the body of the function,
+then normal order requires repeated evaluation of the expression,
+whereas applicative order requires only one evaluation.  On the other
+hand, if the body does not require the value at all, then applicative
+order will have wasted time trying to evaluate the expression.  If
+that evaluation does not terminate at all, then the call of the
+function will fail to terminate under applicative order although it
+would have terminated under normal order.  Consequently there are some
+functions that are less defined under applicative order evaluation
+than they are under normal order.
+
+<P>
+
+The Y combinator of the lambda calculus does not work at all for
+applicative order.  No matter what the function is, the call with the
+Y combinator will try to do the unending sequence of substitutions and
+hence fail to terminate.  Therefore a different version of the Y
+combinator has to be used, see <A HREF="REFS.HTML#{Stoy77}">{Stoy77}</A>, <A HREF="REFS.HTML#{Henson87}">{Henson87}</A>, <A HREF="REFS.HTML#{Paulson92}">{Paulson92}</A>,
+<A HREF="REFS.HTML#{Winskel93}">{Winskel93}</A>.
+
+<P>
+
+In Joy there are no formal parameters, there is no substitution, and
+hence strictly speaking there is no evaluation order.  Joy functions
+take their actual parameters as values from the stack, and in a way
+this <EM> resembles</EM> applicative order.  The <CODE>y</CODE>
+combinator of Joy always terminates correctly provided that the quoted
+program and any of its actual parameters did get onto the stack, and
+provided that the quoted program terminates.  So there is a difference
+between the Y combinator of the lambda calculus under applicative
+order, and the <CODE>y</CODE> combinator of Joy.  What is the reason?
+Consider again, for an arbitrary program <CODE>[P]</CODE>
+
+<PRE>
+        [P]  y
+    ==  [P]  fix  i
+    ==  [[duco P] duco P]  i
+    ==  [duco P]  duco P
+    ==  [[duco P] duco P]  P
+</PRE>
+
+This point is always reached in the initial call, and it is
+independent of what <CODE>P</CODE> actually is.  At this point there
+is a (double) quotation (containing <CODE>P</CODE> twice) on top of
+the stack, and <CODE>P</CODE> now has it available as a parameter.
+Quotations are never evaluated further, although they can be
+explicitly manipulated by operators or they can be explicitly called
+by combinators.  Consequently the second <CODE>duco</CODE> inside the
+quotation will <EM> not</EM> be executed to yield
+
+<PRE>
+    ==  [[[duco P] duco P] duco P]  P
+</PRE>
+
+Here of course the second and third <CODE>duco</CODE> would have been
+the next candidates for execution, and so on.  So the reason for the
+difference is that quotations in Joy are never evaluated
+automatically, whereas abstractions in the lambda calculus will be
+under applicative order evaluation.
+
+<P>
+
+It is possible to generalise fixpoint combinators for mutual
+recursion.  For the lambda calculus this is done for example by
+<A HREF="REFS.HTML#{Kogge91}">{Kogge91}</A>, shows how pairs of mutually recursive definitions can be
+eliminated by using a pair of rather complicated mutually recursive
+combinators Y1 and Y2.  A similar technique is explained in
+<A HREF="REFS.HTML#{Henson87}">{Henson87}</A>.  Constructions such as these rely on the existence of
+<EM>double fixpoints</EM>, whose existence follows from a <EM>double
+recursion theorem</EM> (see for example <A HREF="REFS.HTML#{Smullyan94}">{Smullyan94}</A>).  Presumably
+these can be translated into Joy, too.
+
+<H2>Rice's theorem</H2>
+
+Consider arbitrary sets of functions, and note that this does not mean
+sets of programs.  Call such a set <EM> non-trivial</EM> if it is
+neither the universal set of all functions nor the null set of no
+functions.  Given a non-trivial set <CODE>F</CODE> of partial
+functions and a Joy program <CODE>[Q]</CODE>, the question arises
+whether the function computed by <CODE>[Q]</CODE> is in <CODE>F</CODE>
+or not.  Is there an algorithm for deciding such questions?  More
+specifically, is there a Joy program, say <CODE>PF</CODE>, for
+deciding such questions?  Such a program would have to satisfy
+
+<PRE>
+    [Q]  PF   ==   true,  if the function computed by [Q] is in F
+              ==   false, if the function computed by [Q] is not in F
+</PRE>
+
+The program <CODE>PF</CODE> is also expected to terminate for all
+inputs <CODE>[Q]</CODE>.  Can there be such a program?
+
+<P>
+No. This is <EM>Rice's theorem</EM>:
+<PRE>
+        For all non-trivial sets F of partial functions,
+            there is no program  PF  such that
+                for all programs  Q
+                    PF can decide whether
+                        the function computed by  Q  is in F.
+</PRE>
+
+Proof: Let <CODE>F</CODE> be a non-trivial set of functions.  Since
+<CODE>F</CODE> is non-trivial, there are some functions in
+<CODE>F</CODE> and some functions not in <CODE>F</CODE>.  Let program
+<CODE>[E]</CODE> compute a function in <CODE>F</CODE> and let
+<CODE>[E']</CODE> compute a function not in <CODE>F</CODE>.
+
+<P>
+
+Now assume that a program <CODE>PF</CODE> exists, and that it always
+terminates.  Next, consider the following Joy program:
+
+<PRE>
+        [PF]  [pop [E']]  [pop [E]]  ifte
+</PRE>
+
+The program expects an arbitrary program <CODE>[Q]</CODE> on top of
+the stack and then pushes the three small quotations.  The
+<KBD>ifte</KBD> operator then removes them again and executes the
+first short quotation <CODE>[PF]</CODE>.  This will result in a truth
+value, <CODE>true</CODE> or <CODE>false</CODE>.  In the first case the
+second short quotation is executed, it <CODE>pop</CODE>s the
+<CODE>[PF]</CODE> and replaces it by <CODE>[E']</CODE>.  In the second
+case the third short quotation is executed, it <CODE>pop</CODE>s the
+<CODE>[PF]</CODE> and replaces it by <CODE>[E]</CODE>.  So, if
+<CODE>[Q]</CODE> is in <CODE>F</CODE>, the program returns a program
+not in <CODE>F</CODE>, namely <CODE>[E']</CODE>.  On the other hand,
+if <CODE>[Q]</CODE> is not in <CODE>F</CODE>, the program returns a
+program that is in <CODE>F</CODE>, namely <CODE>[E]</CODE>.  In other
+words, no matter what the input program <CODE>[Q]</CODE> is, the
+output program is opposite as far as membership in <CODE>F</CODE> is
+concerned.  Call the above program <CODE>OPF</CODE>.
+
+<P>
+
+By the fixpoint theorem, the program <CODE>OPF</CODE> must have a
+fixpoint, say <CODE>FIXOPF</CODE>, satisfying
+
+<PRE>
+        FIXOPF  ==  [FIXOPF]  OPF
+</PRE>
+
+But if the program on the left computes a function in <CODE>F</CODE>,
+then the program on the right computes a function not in
+<CODE>F</CODE>, and vice versa.  But this is a contradiction.  So the
+program <CODE>OPF</CODE> fails for at least one program, its own
+fixpoint <CODE>FIXOPF</CODE>.  We must conclude that the assumption
+was false.  So there cannot be a program <CODE>PF</CODE>.
+
+<P>
+
+The above proof of Rice's theorem for Joy is adapted from a proof for
+recursive functions in <A HREF="REFS.HTML#{Phillips92}">{Phillips92}</A>.  Several well-known
+<EM>paradox</EM>es are instances of the recursion theorem, for example
+the <EM>Liar paradox</EM> and <EM>Grelling's paradox</EM> use as the
+program <CODE>[P]</CODE> the simple program <CODE>[i not]</CODE>.
+Recent discussions of the Liar and related problems can be found in
+<A HREF="REFS.HTML#{Martin70}">{Martin70}</A> and in <A HREF="REFS.HTML#{Barwise-Etchemendy87}">{Barwise-Etchemendy87}</A>.
+
+
+<H2>Other self-reproducing and self-describing programs</H2>
+
+There are variants of the programs in section 5 which are worth
+mentioning.
+
+<OL>
+
+<LI>
+
+The following is a simplification of the first self-reproducing
+program.  It is simpler because it uses an operand parameter which it
+leaves intact.
+
+<PRE>
+        There is an operand Q1 and a program Q2 such that
+            Q1  [Q2]  i   ==   Q1  [Q2]
+</PRE>
+
+Proof: Let <CODE>Q1</CODE> = <CODE>[dup]</CODE> and let
+<CODE>Q2</CODE> = <CODE>dup</CODE>.  Then the derivation is
+
+<PRE>
+        [dup]  [dup]  i
+    ==  [dup]   dup                             (by i)
+    ==  [dup]  [dup]                            (by dup)
+</PRE>
+
+This seemingly trivial self-reproducing program will be used to derive
+a version of recursion that is actually more efficient than the one
+based on the <CODE>y</CODE> combinator.
+
+<P>
+
+
+<LI>
+The next uses the <CODE>b</CODE> combinator:
+<PRE>
+        There are programs Q1 and Q2 such that
+            [Q1] [Q2] b   ==   [Q1] [Q2]
+</PRE>
+Proof: let Q1 and Q2 be the programs
+<PRE>
+        [[] cons dup first]
+         [] cons dup first
+</PRE>
+Then the derivation is:
+<PRE>
+        [[[] cons dup first]]  [[] cons dup first]  b
+    ==   [[] cons dup first]    [] cons dup first           (by b)
+    ==  [[[] cons dup first]]           dup first           (by cons)
+    ==  [[[] cons dup first]] [[[] cons dup first]] first   (by dup)
+    ==  [[[] cons dup first]]  [[] cons dup first]          (by first)
+</PRE>
+It is useful to introduce an operator <KBD>codufi</KBD> by the definition:
+<PRE>
+        codufi  ==  cons dup first
+</PRE>
+The operator will be found useful in the next section.
+<P>
+
+<LI>
+
+The next example of a self-reproducing program again uses the
+<CODE>i</CODE> combinator:
+<PRE>
+        There is a program Q such that
+                [Q] i i   ==   [Q]   =/=   [Q] i
+</PRE>
+Proof: let <CODE>Q</CODE> be the program
+<PRE>
+        [duco [] cons] duco [] cons
+</PRE>
+The execution now looks like this:
+<PRE>
+         [[duco [] cons] duco [] cons]   i  i
+    ==    [duco [] cons] duco [] cons  i                        (by i)
+    ==   [[duco [] cons] duco [] cons] [] cons  i               (by duco)
+    ==  [[[duco [] cons] duco [] cons]]  i                      (by cons)
+    ==   [[duco [] cons] duco [] cons]                          (by i)
+</PRE>
+
+Observe that the quoted programs in the first and fourth line differ
+by just the extra quoting in line four.
+
+<P>
+There is another program with the property.
+Let <CODE>Q</CODE> be the program
+<PRE>
+        [false [not] infra dup rest cons] [not] infra dup rest cons
+</PRE>
+
+The combinator <KBD>infra</KBD> expects a program (here
+<CODE>[not]</CODE>) on top of the stack, and below that a quotation
+(here the first half of the program).  It temporarily turns the
+quotation into the stack and executes the program (here it complements
+the truth value <CODE>false</CODE> or <CODE>true</CODE> at the very
+beginning.  An outline of the derivation is:
+
+<PRE>
+    [[false [not] infra dup rest cons] [not] infra dup rest cons] i i
+    [[true  [not] infra dup rest cons] [not] infra dup rest cons] i
+    [[false [not] infra dup rest cons] [not] infra dup rest cons]
+</PRE>
+(Each by 5 steps)
+<P>
+
+The quoted programs the first and second lines are examples of
+<EM>mutually describing programs</EM>, satisfying
+
+<PRE>
+        P  =  [Q]       and       Q  == [P]
+</PRE>
+In detail:
+<PRE>
+P  ==  [false [not] infra dup rest cons] [not] infra dup rest cons
+Q  ==  [true  [not] infra dup rest cons] [not] infra dup rest cons
+</PRE>
+
+<LI>
+
+The previous program keeps an internal toggle (<CODE>true</CODE> or
+<CODE>false</CODE>) which is thrown every time it is called.  The next
+program does the same with a counter, and consequently every
+generation is different from all previous ones: Let <CODE>Q</CODE> be
+the program
+
+<PRE>
+    [0 [1 +] infra dup rest cons] [1 +] infra dup rest cons
+</PRE>
+
+Successive executions using <CODE>i</CODE> cause the <CODE>0</CODE> to
+be incremented to <CODE>1</CODE>, <CODE>2</CODE> and so on.
+<P>
+
+<LI>
+
+Almost all programs become ruined when maltreated.  Cutting off bits
+and pieces would generally cause malfunction.  Worms of course can
+regenerate from small pieces, but most programs are not like that.
+But programs can be written so that after each call they become more
+and more insensitive to mutilation.  The mutilating operations are
+<CODE>first</CODE> and <CODE>rest</CODE> or sequences of such
+operations.  There are programs which with every generation become
+less and less sensitive to longer and longer sequences of mutilations.
+Two such <CODE>Q</CODE> are
+
+<PRE>
+        [duco duco] duco duco
+        [cons duco] [cons duco] cons duco
+</PRE>
+<P>
+
+<LI>
+
+Kym Horsell commented that self-reproducing programs do not do
+anything useful.  The idea would be that for a given program another
+program is to be found which is self-reproducing and at each
+generation executes the original program first.  So the problem is to
+find, for arbitrary <CODE>P</CODE>, a program <CODE>Q</CODE> such that
+
+<PRE>
+        [Q]  i  i  ..  i   ==   P  P  ..  P  [Q]
+</PRE>
+
+where the <CODE>i</CODE> on the left and the <CODE>P</CODE> on the
+right are repeated the same number of times.  Here is one answer:
+
+<PRE>
+        There is a program O such that
+            for all programs P
+                there is a program Q such that
+                        [P]  O   ==   [Q]   and
+                        [Q]  i   ==   Q   ==   P  [Q]
+</PRE>
+Proof: Let <CODE>O</CODE> be the program
+<PRE>
+        [dup [first i] dip rest duco] cons duco
+</PRE>
+Then for any <CODE>P</CODE>:
+<PRE>
+    [P]  O
+==  [P] [dup [first i] dip rest duco] cons duco         (by O)
+==  [[P] dup [first i] dip rest duco] duco              (by cons)
+== [[[P] dup [first i] dip rest duco] [P] dup [first i] dip rest duco]
+                                                        (by duco)
+</PRE>
+
+</OL>
+
+<H2>Another recursion combinator</H2>
+
+Apart from the <CODE>y</CODE> combinator there are other recursion
+combinators.  One of them is given by the following theorem:
+
+<PRE>
+        There is a program M such that
+(1)         [y] M  ==  [y] i  ==  y  and
+            for some programs N and O
+(2a)             [M] [duco] swap concat  ==  [N]  and
+(2b)             [N] duco  ==  [O] and
+(3)              [M] y  ==  [N] dup i  ==  O  and
+                 for all programs P
+(4)                  [P] O  ==  [P] y  and
+                     there is a program Q such that
+(5)                     [P] [O] cons  ==  [Q]  and
+(6)                     [Q] i  ==  Q  ==  [Q] P
+</PRE>
+
+The first line, (1), says that <CODE>y</CODE> is a fixpoint for
+<CODE>M</CODE>.  Lines (2a) and (2b) show how to construct two further
+programs <CODE>N</CODE> and <CODE>O</CODE>.  Line (3) expresses a
+relationship between the three programs <CODE>M</CODE>, <CODE>N</CODE>
+and <CODE>O</CODE>.  Line (5) shows how to construct a program
+<CODE>Q</CODE> which depends on <CODE>P</CODE>.  The last line of the
+theorem says that the <CODE>Q</CODE> is a fixpoint for <CODE>P</CODE>.
+
+<P> 
+
+<B>Proof:</B> Only <CODE>M</CODE> need be given, because
+<CODE>N</CODE> and <CODE>O</CODE> are constructed.  The required
+<CODE>M</CODE> is actually a combinator already seen in section 2:
+
+<PRE>
+        cons  dup  first  i
+</PRE>
+
+But the first three operators can be replaced by <KBD>codufi</KBD>
+defined in the previous section.  So we set:
+
+<PRE>
+        M  ==  codufi i
+</PRE>
+This is used to construct <CODE>N</CODE>:
+<PRE>
+        [M] [duco] swap concat
+    ==  [codufi i] [duco] swap concat                           (def M)
+    ==  [duco] [codufi i]                                       (by swap)
+    ==  [duco codufi i]                                         (by concat)
+    ==  [N]                                                     (def N)
+</PRE>
+So we have:
+<PRE>
+        N  ==  duco codufi i
+</PRE>
+This program can be used to construct <CODE>O</CODE>:
+<PRE>
+        [N] duco
+    ==  [duco codufi i] duco                                    (def N)
+    ==  [[duco codufi i] duco codufi i]                         (by duco)
+    ==  [O]                                                     (def O)
+</PRE>
+So we have:
+<PRE>
+        O  ==  [duco codufi i] duco codufi i
+</PRE>
+
+This program can now be used to construct, for arbitrary
+<CODE>[P]</CODE> a corresponding <CODE>[Q]</CODE>:
+
+<PRE>
+        [P] [O] cons
+    ==  [P] [[duco codufi i] duco codufi i] cons                (def O)
+    ==  [[P] [duco codufi i] duco codufi i]                     (by cons)
+    ==  [Q]                                                     (def Q)
+</PRE>
+So we have, for arbitrary <CODE>[P]</CODE>,
+<PRE>
+        Q  ==  [P] [duco codufi i] duco codufi i
+</PRE>
+It remains to be shown that <CODE>Q</CODE> is a fixpoint for <CODE>P</CODE>:
+<PRE>
+        [Q]  i
+    ==  [[P] [duco codufi i] duco codufi i]  i                  (def Q)
+    ==   [P] [duco codufi i] duco codufi i                      (by i)
+    ==  [P] [[duco codufi i] duco codufi i] codufi i            (by duco)
+    ==  [[P] [duco codufi i] duco codufi i] [P] i               (by codufi)
+    ==  [[P] [duco codufi i] duco codufi i]  P                  (by i)
+    ==  [Q]  P                                                  (def Q)
+</PRE>
+This shows that <CODE>Q</CODE> is indeed a fixpoint for <CODE>P</CODE>.
+<P>
+
+Different recursion combinators, and indeed a whole hierarchy of them,
+are well known in the literature on <EM>lambda calculus</EM> and
+<EM>combinatory logic</EM>; see for example <A HREF="REFS.HTML#{Barendregt84}">{Barendregt84}</A>,
+<A HREF="REFS.HTML#{Henson87}">{Henson87}</A>, <A HREF="REFS.HTML#{Revesz88}">{Revesz88}</A>.  Possibly one of the most satisfying
+introductions to combinatory logic is to be found in the remarkable
+little book <A HREF="REFS.HTML#{Smullyan90}">{Smullyan90}</A> <EM> To Mock a Mockingbird</EM> in which he
+manages to combine humour and rigour.  Part III is a self-contained
+exposition to combinatory logic in which fancyful names are given to
+lambda calculus combinators.
+
+
+<H2>Practical recursion combinators in Joy</H2>
+
+Here are three recursive definitions.  The function
+<CODE>r-last</CODE> finds the <EM>last</EM> element of a list.  The
+function <CODE>r-fac</CODE> computes the <EM>factorial</EM> of a
+number.  The function <CODE>r-fib</CODE> computes the
+<EM>Fibonacci</EM> value of a number.
+
+<PRE>
+    r-last  ==  [rest null] [first] [rest r-last] ifte
+    r-fac  ==  [0 =] [succ] [dup pred r-fac *] ifte
+    r-fib  ==  [small] [pop 1] [pred dup pred [r-fib] app2 +] ifte
+</PRE>
+
+The following three functions also compute The last, the factorial and
+the Fibonacci of their parameter.  Note that there is no definition;
+the recursion is taken care of by the <CODE>y</CODE> combinator.
+
+<PRE>
+  [ [pop rest null] [pop first] [[rest] dip i] ifte ] y
+  [ [pop 0 =] [pop succ] [[dup pred] dip i *] ifte ] y
+  [ [pop small] [pop pop 1] [[pred dup pred] dip app2 +] ifte] y
+</PRE>
+<P>
+
+But the <CODE>y</CODE> combinator is intrisically inefficient because
+of the way it operates.  On every recursive call a certain program is
+popped off the stack to be executed.  The first task of that program
+is to construct a copy of itself, in readiness for any further
+recursive calls.  But this is really quite silly.  It would be better
+more efficient if the program to be executed was <EM> not</EM> popped
+off the stack at all but simply left there.  Whereas most combinators
+remove their parameters from the stack, a new <KBD>x</KBD> combinator
+leaves it there as a parameter for itself.
+
+<P>
+
+The following programs use the <CODE>x</CODE> combinator instead of
+the <CODE>y</CODE> combinator.  They are obtained from the first two
+of the previous programs by replacing the internal occurrences of the
+<CODE>i</CODE> combinator and the the external occurrence of the
+<CODE>y</CODE> combinator by the <CODE>x</CODE> combinator.
+
+<PRE>
+  [ [pop rest null] [pop first] [[rest] dip x] ifte ] x
+  [ [pop 0 =] [pop succ] [[dup pred] dip x *] ifte ] x
+</PRE>
+The <CODE>x</CODE> combinator <EM> might</EM> have been defined by
+<PRE>
+        x  ==  dup i
+</PRE>
+<P>
+
+Similar lambda calculus constructions are discussed in <A HREF="REFS.HTML#{Tennent76}">{Tennent76}</A>,
+<A HREF="REFS.HTML#{Bauer-Woessner82}">{Bauer-Woessner82}</A>, <A HREF="REFS.HTML#{Schmidt86}">{Schmidt86}</A> and <A HREF="REFS.HTML#{Tennent91}">{Tennent91}</A>.
+
+<P>
+
+The remainder of this section describes some further general and
+particular combinators of Joy which can be used to avoid recursive
+definitions.
+<P>
+
+<OL>
+
+<LI>
+The <KBD>genrec</KBD> combinator takes four program parameters in
+addition to whatever data parameters it needs.  Fourth from the top is
+an if-part, followed by a then-part.  If the if-part yields true, then
+the then-part is executed and the combinator terminates.  The other
+two parameters are the rec1-part and the rec2part.  If the if-part
+yields <CODE>false</CODE>, the rec1-part is executed.  Following that
+the four program parameters and the combinator are again pushed onto
+the stack bundled up in a quoted form.  Then the rec2-part is
+executed, where it will find the bundled form.  Typically it will then
+execute the bundled form, either with <CODE>i</CODE> or with
+<CODE>app2</CODE>, or some other combinator.
+
+<PRE>
+    g-fac == [null ] [succ] [dup pred     ] [i *   ] genrec;
+    g-fib == [small] [    ] [pred dup pred] [app2 +] genrec;
+</PRE>
+<P>
+
+<LI>
+The <KBD>linrec</KBD> combinator also takes four program parameters
+and is otherwise very similar to the <CODE>genrec</CODE> combinator.
+The essential difference is that the bundled up quotation is
+immediately called before the rec2-part.  Consequently it can only be
+used for <EM>linear recursion</EM>.  Here are programs for finding the
+<CODE>last</CODE> of an aggregate or the Fibonacci value of a natural
+number:
+
+<PRE>
+    l-last == [rest null] [first] [rest    ] [ ] linrec;
+    l-fac  == [null     ] [succ ] [dup pred] [*] linrec
+</PRE>
+<P>
+
+<LI>
+The <KBD>binrec</KBD> combinator is again similar, but it applies
+the bundled quotation twice, once to each of the two top values which
+the rec1-part has left on the stack.  It implements <EM>binary
+recursion</EM>.  Below it is used for the Fibonacci function and for a
+<EM>quicksort</EM> program for lists (or strings).
+
+<PRE>
+  b-fib == [small] [] [pred dup pred   ] [+                 ] binrec;
+b-qsort == [small] [] [uncons [>] split] [swap23 cons concat] binrec;
+</PRE>
+<P>
+
+<LI>
+The <KBD>tailrec</KBD> combinator is similar to the
+<CODE>linrec</CODE> combinator, except that it does not have a
+rec2-part.  It can only be used for <EM>tail recursion</EM>, such as
+in the program below which returns the last element of an aggregate.
+
+<PRE>
+    t-last == [rest null] [first] [rest] tailrec;
+</PRE>
+<P>
+
+<LI>
+The <KBD>primrec</KBD> combinator is for <EM>primitive
+recursion</EM>, it has the typical if-part built in.  For numeric
+parameters and for aggregate parameters it tests for
+<CODE>null</CODE>.  The rec1-part is also built in, for numeric
+parameters it returns the parameter and its predecessor, for aggregate
+parameters it returns the <CODE>first</CODE> of the aggregate and the
+<CODE>rest</CODE> of the aggregate.  Recursion then occurs
+respectively on the predecessor or the rest, and the rudimentary
+rec2-part typically combines the results.  
+
+<P>
+
+The first program below computes the factorial (again!).  The second
+turns any aggregate into a list.  The third turns a suitable list of
+small numbers into a set.  The fourth and fifth capitalise lists or
+strings of lowercase letters and produce, respectively, a list or
+string of corresponding capital letters.  The last program takes an
+aggregate as parameter and produces a list of every second element in
+the original order and then the other elements in the reverse order.
+
+<PRE>
+    p-fac      ==  [1 ]  [*              ]  primrec
+    agg2list   ==  [[]]  [cons           ]  primrec
+    list2set   ==  [{}]  [cons           ]  primrec
+    capstring  ==  [""]  [[32 -] dip cons]  primrec
+    caplist    ==  [[]]  [[32 -] dip cons]  primrec
+    fancy      ==  [[]]  [reverse  cons  ]  primrec
+</PRE>
+
+</OL>
+
+<HR>
