@@ -2,18 +2,21 @@
 
 backup of the joy programming language
 
-http://www.kevinalbrecht.com/code/joy-mirror/joy.html
+a copy of http://www.kevinalbrecht.com/code/joy-mirror/joy.html
 
 -----------------------------------
 
 * note that
   the code base is not clean in my view
-  I do not maintain this implementation
+  thus I do not maintain this implementation
   I just learn from the design of the language
 
 * if you care about the life of joy language
   and you consider the code base hackable
   do a fork and maintain it
+
+* I also play with a joy-like language in js
+  here : https://github.com/xieyuheng/sad-coffee
 
 -----------------------------------
 
